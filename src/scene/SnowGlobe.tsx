@@ -1,23 +1,32 @@
 'use client';
 import { Suspense } from 'react';
 import { GLOBE } from '@/src/game/constants';
+import { useApp } from '@/src/game/store';
+import { Pranks } from './Pranks';
+import { VillageLightDriver } from './VillageLightDriver';
 import { Base } from './Base';
 import { Glass } from './Glass';
+import { GlobeLights } from './GlobeLights';
+import { Ground } from './Ground';
 import { Snow } from './Snow';
 import { Village } from './Village';
 
 /** The one object: base, village, snow, glass. Globe-local units, scaled into the world. */
 export function SnowGlobe() {
+  // Restarting remounts the props so the snowman, lamp and tree come back untouched.
+  const round = useApp((s) => s.round);
   return (
     <group position={GLOBE.position} scale={GLOBE.scale}>
       <Base />
+      <GlobeLights />
       <Suspense fallback={null}>
-        <group position-y={GLOBE.floorY}>
+        <group name="village-floor" position-y={GLOBE.floorY} key={round}>
+          <Ground />
           <Village />
+          <Pranks />
         </group>
       </Suspense>
-      {/* Warm spill from the shop windows. */}
-      <pointLight position={[0, GLOBE.floorY + 0.12, 0.02]} color="#ffae5e" intensity={0.02} distance={0.7} decay={2} />
+      <VillageLightDriver />
       <Snow />
       <Glass />
     </group>

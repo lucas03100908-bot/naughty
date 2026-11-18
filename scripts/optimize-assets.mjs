@@ -19,7 +19,8 @@ const OUT = 'public/models';
 // Rectangles [x, y, w, h] in 4096² base color texture pixels. Found by OCR + visual
 // inspection of each atlas. Each is replaced by a heavy blur of itself, which keeps
 // the surface color but makes lettering and emblems unreadable (CLAUDE.md: IP).
-const MODELS = [
+const only = process.argv.slice(2); // optional: names to (re)build, e.g. `npm run assets -- snowman`
+const ALL_MODELS = [
   {
     name: 'shop_a',
     triangles: 100_000,
@@ -65,7 +66,15 @@ const MODELS = [
     ],
   },
   { name: 'street_lamp', triangles: 30_000, baseSize: 1024, emissive: true, cover: [] },
+  // Multi-part props: every part keeps its own node (the snowman's head and nose come off,
+  // the tree's ornaments are its lights), every material is processed.
+  { name: 'christmas_tree', triangles: 80_000, baseSize: 1024, emissive: true, cover: [] },
+  { name: 'snowman', triangles: 50_000, baseSize: 1024, emissive: false, cover: [] },
+  // Snowy cobbled street with curbs: the village ground.
+  { name: 'ground', triangles: 60_000, baseSize: 2048, emissive: false, cover: [] },
 ];
+
+const MODELS = only.length ? ALL_MODELS.filter((m) => only.includes(m.name)) : ALL_MODELS;
 
 const io = new NodeIO()
   .registerExtensions(ALL_EXTENSIONS)
@@ -136,14 +145,18 @@ for (const m of MODELS) {
   for (const ext of doc.getRoot().listExtensionsUsed())
     if (ext.extensionName === 'KHR_materials_volume') ext.dispose();
 
-  const material = doc.getRoot().listMaterials()[0];
-  const base = material.getBaseColorTexture();
-  const covered = await coverRects(Buffer.from(base.getImage()), m.cover);
-  base.setImage(new Uint8Array(covered)).setMimeType('image/jpeg');
-
-  if (m.emissive) {
-    const em = doc.createTexture(`${m.name}_emissive`).setImage(new Uint8Array(await emissiveFrom(covered, 1024))).setMimeType('image/png');
-    material.setEmissiveTexture(em).setEmissiveFactor([1, 1, 1]);
+  const materials = doc.getRoot().listMaterials();
+  for (const [mi, material] of materials.entries()) {
+    const base = material.getBaseColorTexture();
+    if (!base) continue;
+    // Cover rectangles are in the (single) main atlas's pixels.
+    const covered = mi === 0 ? await coverRects(Buffer.from(base.getImage()), m.cover) : Buffer.from(base.getImage());
+    base.setImage(new Uint8Array(covered)).setMimeType('image/jpeg');
+    if (m.emissive) {
+      const size = Math.min(1024, base.getSize()?.[0] ?? 1024);
+      const em = doc.createTexture(`${m.name}_${mi}_emissive`).setImage(new Uint8Array(await emissiveFrom(covered, size))).setMimeType('image/png');
+      material.setEmissiveTexture(em).setEmissiveFactor([1, 1, 1]);
+    }
   }
 
   const ratio = Math.min(1, m.triangles / before.tris);

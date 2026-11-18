@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLOBE, SNOW } from '../game/constants.ts';
+import { GROUND_HEIGHTS } from './groundHeights.ts';
 
 /**
  * Snow simulation, free of React and the DOM so it can be checked headless
@@ -26,16 +27,24 @@ export function createSnowSim() {
   const before = new Float32Array(N * N); // where lifted snow lands again
   let beforeSum = 1;
   const mask = new Uint8Array(N * N);
+  // Snow lies on the cobbled ground where there is ground (baked heights), on the floor elsewhere.
+  const base = new Float32Array(N * N);
+  const onGround = new Uint8Array(N * N);
+  if (GROUND_HEIGHTS.n === N)
+    for (let k = 0; k < N * N; k++) {
+      const g = GROUND_HEIGHTS.heights[k];
+      if (g >= 0) {
+        base[k] = g;
+        onGround[k] = 1;
+      }
+    }
   for (let j = 0; j < N; j++)
     for (let i = 0; i < N; i++) {
       const x = -Rf + (i + 0.5) * cell;
       const z = -Rf + (j + 0.5) * cell;
       const inside = Math.hypot(x, z) < Rf - cell * 0.6;
       mask[j * N + i] = inside ? 1 : 0;
-      if (inside) {
-        const n = 0.5 + 0.5 * Math.sin(x * 37 + z * 11) * Math.cos(z * 23 - x * 7);
-        h[j * N + i] = SNOW.initialDepth * (0.7 + 0.6 * n);
-      }
+      if (inside) h[j * N + i] = restingDepth(x, z, Rf) * (onGround[j * N + i] ? SNOW.onGroundShare : 1);
     }
 
   // One vertex per cell centre. PlaneGeometry rows map to +z after rotateX(-π/2).
@@ -56,7 +65,7 @@ export function createSnowSim() {
   const writeField = () => {
     for (let k = 0; k < N * N; k++) {
       const depth = mask[k] ? h[k] : 0;
-      fpos.setY(k, floorY + 0.0012 + depth);
+      fpos.setY(k, floorY + base[k] + 0.0012 + depth);
       const a = mask[k] ? THREE.MathUtils.smoothstep(depth, 0.0015, 0.009) : 0;
       fcol.setXYZW(k, 0.94, 0.96, 1.0, a);
     }
@@ -102,15 +111,17 @@ export function createSnowSim() {
   let poolTotal = 0;
 
   const shake = (now: number) => {
-    // Everything on the floor goes up; it will come back down evenly (with a little drift
-    // noise), the way a real globe resets when you shake it.
+    // Everything on the floor goes up; it comes back down in the resting shape (even, banked at
+    // the glass, a little noise), the way a real globe resets when you shake it.
     let sum = 0;
     beforeSum = 0;
     for (let k = 0; k < N * N; k++) {
       if (!mask[k]) continue;
       sum += h[k];
       h[k] = 0;
-      before[k] = 0.75 + 0.5 * Math.random();
+      const x = -Rf + ((k % N) + 0.5) * cell;
+      const z = -Rf + (Math.floor(k / N) + 0.5) * cell;
+      before[k] = restingDepth(x, z, Rf) * (onGround[k] ? SNOW.onGroundShare : 1) * (0.85 + 0.3 * Math.random());
       beforeSum += before[k];
     }
     pool += sum;
@@ -132,9 +143,10 @@ export function createSnowSim() {
     writeField();
   };
 
-  const step = (dt: number, now: number, t: number, flow: number) => {
+  /** @param storm extra stir (0..1) held for as long as it is passed, e.g. the judge's blizzard */
+  const step = (dt: number, now: number, t: number, flow: number, storm = 0) => {
     const sinceShake = (now - stirStart) / 1000;
-    const stir = Math.max(0, 1 - sinceShake / SNOW.shakeStirSec) ** 1.5;
+    const stir = Math.max(Math.max(0, 1 - sinceShake / SNOW.shakeStirSec) ** 1.5, storm);
     let fieldDirty = false;
 
     // Flakes.
@@ -179,7 +191,7 @@ export function createSnowSim() {
 
       // Floor.
       const ci = cellIndex(x, z);
-      const ground = floorY + (ci >= 0 && mask[ci] ? h[ci] : 0);
+      const ground = floorY + (ci >= 0 ? base[ci] + (mask[ci] ? h[ci] : 0) : 0);
       if (y <= ground) {
         if (stir > 0.15) {
           y = ground;
@@ -259,4 +271,16 @@ function slump(h: Float32Array, mask: Uint8Array, a: number, b: number, maxStep:
   const move = (Math.abs(d) - maxStep) * 0.25 * Math.sign(d);
   h[a] -= move;
   h[b] += move;
+}
+
+/**
+ * Snow depth of an undisturbed globe: thick and lumpy, drifted up against the glass. On the
+ * cobbled street it is scaled down by SNOW.onGroundShare (the street model has its own snow).
+ */
+function restingDepth(x: number, z: number, Rf: number) {
+  const lumps = 0.5 + 0.5 * Math.sin(x * 37 + z * 11) * Math.cos(z * 23 - x * 7);
+  const swells = 0.5 + 0.5 * Math.sin(x * 9 - z * 6 + 1.7);
+  const r = Math.hypot(x, z) / Rf;
+  const bank = THREE.MathUtils.smoothstep(r, 0.55, 0.97);
+  return SNOW.initialDepth * (0.75 + 0.3 * lumps + 0.2 * swells) + SNOW.edgeBank * bank;
 }

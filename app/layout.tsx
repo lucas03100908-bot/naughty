@@ -13,6 +13,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="ko">
+      <head>
+        {/* Adobe Fonts kit: olivia for the title. */}
+        <link rel="preconnect" href="https://use.typekit.net" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://use.typekit.net/yyp5ndl.css" />
+      </head>
       <body>{children}</body>
     </html>
   );

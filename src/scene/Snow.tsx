@@ -1,7 +1,8 @@
 'use client';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { SNOW } from '@/src/game/constants';
+import * as THREE from 'three';
+import { SNOW, STORM, VIEW } from '@/src/game/constants';
 import { live } from '@/src/game/store';
 import { flakeSprite } from './proceduralTextures';
 import { createSnowSim } from './snowSim';
@@ -11,6 +12,7 @@ export function Snow() {
   const sim = useMemo(() => createSnowSim(), []);
   const sprite = useMemo(() => flakeSprite(), []);
   const lastShakeSeen = useRef(0);
+  const flakeMat = useRef<THREE.PointsMaterial>(null);
 
   // Dev only: inspect the heightfield from the console (window.__snow.inspect()).
   useEffect(() => {
@@ -25,16 +27,19 @@ export function Snow() {
       lastShakeSeen.current = live.lastShakeAt;
       sim.shake(now);
     }
-    sim.step(dt, now, state.clock.elapsedTime, live.flow);
+    sim.step(dt, now, state.clock.elapsedTime, live.flow, live.storm * STORM.maxStir);
+    // Flakes are drawn at a fixed world size; inside the village they would be snowballs.
+    if (flakeMat.current) flakeMat.current.size = SNOW.flakeSize * THREE.MathUtils.lerp(1, VIEW.insideFlakeScale, live.viewBlend);
   });
 
   return (
     <group>
-      <mesh geometry={sim.fieldGeometry} renderOrder={1}>
-        <meshStandardMaterial vertexColors transparent roughness={0.75} color="#ffffff" emissive="#6d7c96" emissiveIntensity={0.08} />
+      <mesh geometry={sim.fieldGeometry} renderOrder={1} receiveShadow>
+        <meshStandardMaterial vertexColors transparent roughness={0.95} color="#cdd6e4" emissive="#6d7c96" emissiveIntensity={0.06} />
       </mesh>
       <points geometry={sim.flakeGeometry} frustumCulled={false} renderOrder={3}>
         <pointsMaterial
+          ref={flakeMat}
           map={sprite}
           size={SNOW.flakeSize}
           sizeAttenuation

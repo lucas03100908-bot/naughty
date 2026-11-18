@@ -26,6 +26,11 @@ export const HEAD = {
   gainXY: 1.0,
   /** Multiplies measured change in distance from nominal. */
   gainZ: 1.0,
+  /**
+   * Distance from the neck pivot to the eyes, cm. Head roll swings the eyes sideways by
+   * this × sin(roll); that swing is removed from the viewpoint so tilting only moves the snow.
+   */
+  rollPivotCm: 12,
 };
 
 export const TRACKING = {
@@ -62,10 +67,13 @@ export const MOUSE = {
   /** Head offset at the screen edge in mouse mode, cm. */
   rangeXCm: 18,
   rangeYCm: 10,
-  /** Roll at the screen edge while Shift is held, degrees. */
-  rollMaxDeg: 30,
   /** Mouse x is mapped to a pseudo-yaw of ±this for the shake detector, degrees. */
   shakeYawScaleDeg: 30,
+  /**
+   * Inside the globe the cursor also aims at pranks, so it moves the view a little less.
+   * Not too little: the tree switch is found by looking past the tree.
+   */
+  insideViewScale: 1,
 };
 
 /** Globe geometry in globe-local units (the whole object is ~1 unit tall). */
@@ -94,15 +102,19 @@ export const SNOW = {
   /** Heightfield resolution (cells per side). */
   grid: 64,
   /** Terminal fall speed, globe units/s. */
-  fallSpeed: 0.055,
+  fallSpeed: 0.0275,
   /** Sideways drift amplitude, globe units/s. */
   drift: 0.025,
   /** Height added to a cell per landed flake. */
-  depositPerFlake: 0.00006,
-  /** Starting snow depth. */
-  initialDepth: 0.009,
+  depositPerFlake: 0.00012,
+  /** Starting snow depth across the floor: thick, freshly fallen. */
+  initialDepth: 0.03,
+  /** Extra depth drifted up against the glass at the floor's edge. */
+  edgeBank: 0.022,
+  /** On the cobbled street the snow layer is this share of the normal depth (cobbles show through). */
+  onGroundShare: 0.15,
   /** Cells never grow above this. */
-  maxDepth: 0.05,
+  maxDepth: 0.09,
   /** Heightfield cells the snow layer travels per second at full roll (64 cells = floor width). */
   flowRate: 24,
   /** Max height difference between neighbours before snow slumps (angle of repose). */
@@ -119,8 +131,163 @@ export const SNOW = {
 };
 
 export const LIGHTS = {
-  shopEmissive: 1.4,
+  shopEmissive: 2.2,
   lampEmissive: 3.0,
   treeEmissive: 0.25,
-  lampPointIntensity: 0.012,
+  lampPointIntensity: 0.02,
+};
+
+/**
+ * The off-axis "window" (the screen rectangle) moves into the village for play.
+ * Outside it is the real screen (centre at the origin, 1 unit tall). Inside it sits in the
+ * lane, level with the globe, small enough that the viewer's eye stays inside the glass.
+ */
+export const VIEW = {
+  /** Window centre inside, globe-local units (y measured from the floor). At the lane's mouth. */
+  insideCenter: [0, 0.07, 0.1] as [number, number, number],
+  /** Window height inside, world units. Smaller = the village feels bigger. */
+  insideScale: 0.1,
+  /**
+   * Inside, the eye is pulled this much closer to the window (in window units), which widens the
+   * field of view from the screen's real ~20° to ~75° (wide, like the reference street photo). Head x/y are scaled the same way, so
+   * moving your head turns the view by the same angle as outside.
+   */
+  insideEyeDepth: 0.22,
+  /**
+   * Inside, head x/y motion is multiplied by this (on top of insideEyeDepth) so leaning actually
+   * lets you peek around things, e.g. behind the tree for the switch.
+   */
+  insidePeekGain: 2.5,
+  /** Inside, the window tips down by this much (radians). Negative looks up: the tree's star has to be in view. */
+  insidePitch: -0.26,
+  diveSec: 2.6,
+  pullSec: 2.4,
+  /** Flake size multiplier at full inside view (flakes are huge up close otherwise). */
+  insideFlakeScale: 0.08,
+};
+
+/** The dive-in transition video (public/video/dive.mp4, 6 s). See docs/TUNING.md. */
+export const VIDEO = {
+  src: '/video/dive.mp4',
+  /** Crossfade from the 3D globe into the video's first frame. */
+  fadeInSec: 0.35,
+  /** Fade from the video's last frame into the 3D street. */
+  fadeOutSec: 0.7,
+  volume: 0.8,
+  /** If the video never reports 'ended' (stalled network), give up after this long. */
+  maxSec: 9,
+};
+
+export const PLAY = {
+  durationSec: 60,
+  /** Humbug's opening line stays up this long; the dive runs underneath. */
+  startLineSec: 3.2,
+  /** After the last prank, wait this long before ending play. */
+  allDoneDelaySec: 1.5,
+};
+
+export const PRANK = {
+  /** Points for a prank done at second 0. Falls linearly to minShare × this at the buzzer. */
+  maxPoints: 1000,
+  minShare: 0.2,
+  lampFlickerSec: 0.9,
+  /** Snowball flight time to the tree star, seconds. */
+  snowballSec: 0.45,
+  /** Pulsing glow of the star while it waits to be hit (above the bloom threshold). */
+  starGlow: 2.2,
+};
+
+/** 심술 심사: baseline, then the spite grin. See docs/TUNING.md. */
+export const JUDGE = {
+  baselineSec: 2,
+  grinSec: 7,
+  /** Pause on the final face before the result card. */
+  outroSec: 1.2,
+  /**
+   * Channel ranges: how far above your baseline counts as "full". Blendshape scores rarely reach
+   * 1; brow and sneer move much less than a smile.
+   */
+  range: { smile: 0.4, brow: 0.15, squint: 0.3, sneer: 0.15 },
+  /** jawOpen at which the mouth counts as fully open (penalised: the grin is closed-mouth). */
+  jawOpenFull: 0.35,
+  weights: { grin: 0.45, smile: 0.15, squint: 0.25, sneer: 0.15 },
+  /** Spite ≥ this counts toward hold time. */
+  threshold: 0.3,
+  /** Score = maxPoints × (peakShare × peak + holdShare × held fraction). */
+  maxPoints: 2000,
+  peakShare: 0.6,
+  holdShare: 0.4,
+  /** Exponential smoothing of the spite signal per second (higher = snappier). */
+  smoothing: 8,
+  /** Mouse fallback: spite climbs this much per second while held, falls while released. */
+  holdRise: 0.6,
+  holdFall: 0.9,
+};
+
+/** Total score → title. */
+export const TITLES = [
+  { min: 0, name: '귀여운 말썽꾼' },
+  { min: 2000, name: '얄미운 악동' },
+  { min: 3500, name: '전설의 심술쟁이' },
+];
+
+/** 심술 필터 (face warp). Displacements are in eye-distance units. */
+export const FILTER = {
+  /** Filter strength follows spite through this curve: strength = minStrength + (1 − minStrength) × spite. */
+  minStrength: 0.15,
+  /**
+   * The grin: corners lift by smileLift × half the mouth width (more toward the ends, none in the
+   * middle) and the mouth stretches sideways by smileStretch. smileBand is how far above/below the
+   * lips the effect reaches (in half mouth widths). Keep smileLift × 1.4 / smileBand under ~1 or
+   * the warp folds over.
+   */
+  smileLift: 0.7,
+  smileStretch: 0.75,
+  smileBand: 1.0,
+  /** Shape of the lift along the mouth: 2 = even curve, higher = flat middle, ends hook up. */
+  smileCurl: 2.6,
+  browInnerDown: 0.22,
+  /** Inner brow ends also pull toward the nose by this share of browInnerDown. */
+  browInnerIn: 0.45,
+  browOuterUp: 0.2,
+  browRadius: 0.3,
+  eyeSquint: 0.085,
+  /** Lower lids rise by this share of eyeSquint (the upper lid does most of the work). */
+  lowerLidShare: 0.35,
+  eyeRadius: 0.16,
+  cheekPuff: 0.16,
+  cheekRadius: 0.4,
+  /** Landmark smoothing per frame (0..1, higher = steadier, laggier). */
+  landmarkSmoothing: 0.55,
+};
+
+/** Scene reaction to spite during the judge. */
+export const STORM = {
+  /** Village window/lamp glow at full spite (1 = unchanged). */
+  minLight: 0.12,
+  /** Snow stir at full spite (same scale as a shake's stir). */
+  maxStir: 0.85,
+  /** How fast the storm and lights follow spite, per second. */
+  follow: 3,
+};
+
+/** Look-dev: shadows, ambient occlusion, haze. */
+export const LOOK = {
+  /** Moonlight inside the globe: the main shadow caster. Low (~35°) so shadows stretch out. */
+  moonIntensity: 5.5,
+  /** Moon position relative to the floor centre, globe-local. */
+  moonPosition: [-0.6, 0.42, 0.3] as [number, number, number],
+  /** Street lamps also cast (small cube shadow maps), for shadows inside their warm pools. */
+  lampShadowMapSize: 256,
+  shadowMapSize: 2048,
+  /** Fog [near, far] in world units: outside (the whole globe in view) and inside (street scale). */
+  fogOutside: [3.8, 8] as [number, number],
+  fogInside: [0.12, 0.75] as [number, number],
+  /** Screen-space ambient occlusion (contact shading where walls meet the street). */
+  /** Studio lights (hemisphere, fill, key) inside the globe, as a share of outside. */
+  insideAmbient: 0.22,
+  /** Cobbled street colour multiplier (the model's snow reads too white under the lamps). */
+  groundTint: '#8f96a6',
+  aoRadius: 0.03,
+  aoIntensity: 2.2,
 };

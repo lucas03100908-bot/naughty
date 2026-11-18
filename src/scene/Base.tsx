@@ -47,7 +47,7 @@ export function Base() {
       {/* Floor disc inside the globe. The heightfield snow sits on top of it. */}
       <mesh rotation-x={-Math.PI / 2} position-y={GLOBE.floorY + 0.0005}>
         <circleGeometry args={[GLOBE.floorRadius, 96]} />
-        <meshStandardMaterial map={cobble.map} bumpMap={cobble.bump} bumpScale={0.6} roughness={0.9} color="#5d6370" />
+        <meshStandardMaterial map={cobble.map} bumpMap={cobble.bump} bumpScale={0.8} roughness={0.85} color="#8a8f9a" />
       </mesh>
     </group>
   );

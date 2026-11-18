@@ -11,6 +11,7 @@ export function DebugPanel({ video }: { video: HTMLVideoElement | null }) {
   const mode = useApp((s) => s.mode);
   const error = useApp((s) => s.error);
   const events = useApp((s) => s.events);
+  const phase = useApp((s) => s.phase);
   const toggle = useApp((s) => s.toggleDebug);
   const [, setTick] = useState(0);
   const preview = useRef<HTMLDivElement>(null);
@@ -39,13 +40,14 @@ export function DebugPanel({ video }: { video: HTMLVideoElement | null }) {
   if (!open) return <button className={styles.debugToggle} onClick={toggle}>디버그 (D)</button>;
 
   const b = live.blend;
-  const flowLabel = live.flow === 0 ? '없음' : live.flow > 0 ? `→ ${(live.flow * 100).toFixed(0)}%` : `← ${(-live.flow * 100).toFixed(0)}%`;
 
   return (
     <aside className={styles.debug}>
       <header className={styles.debugHead}>
         <strong>디버그</strong>
-        <span>{mode === 'camera' ? '헤드 트래킹' : mode === 'mouse' ? '마우스 대체' : '대기'}</span>
+        <span>
+          {mode === 'camera' ? '헤드 트래킹' : mode === 'mouse' ? '마우스 대체' : '대기'} · {phase} · 안 {(live.viewBlend * 100).toFixed(0)}%
+        </span>
         <button onClick={toggle} aria-label="닫기">×</button>
       </header>
       {error && <p className={styles.error}>{error}</p>}
@@ -60,7 +62,6 @@ export function DebugPanel({ video }: { video: HTMLVideoElement | null }) {
 
       <Section title="제스처">
         <Bar k="roll" v={live.rollDeg} min={-40} max={40} unit="°" dead={ROLL.deadzoneDeg} />
-        <Row k="눈 흐름" v={flowLabel} />
         <Bar k="yaw" v={live.yawDeg} min={-40} max={40} unit="°" />
         <Row k="흔들기 횟수" v={String(live.shakeCount)} />
       </Section>
@@ -68,7 +69,36 @@ export function DebugPanel({ video }: { video: HTMLVideoElement | null }) {
       <Section title="표정 (blendshape)">
         <Bar k="browDown" v={browDown(b)} min={0} max={1} />
         <Bar k="mouthFrown" v={mouthFrown(b)} min={0} max={1} />
-        <Bar k="browInnerUp" v={b.browInnerUp} min={0} max={1} />
+        <Bar k="browInnerUp" v={b.browInnerUp ?? 0} min={0} max={1} />
+        <Bar k="mouthSmile" v={((b.mouthSmileLeft ?? 0) + (b.mouthSmileRight ?? 0)) / 2} min={0} max={1} />
+        <Bar k="jawOpen" v={b.jawOpen ?? 0} min={0} max={1} />
+      </Section>
+
+      <Section title="심술 심사">
+        <Bar k="심술도" v={live.spite} min={0} max={1} />
+        {live.spiteParts && (
+          <>
+            <Bar k="미소" v={live.spiteParts.smile} min={0} max={1} />
+            <Bar k="찡그림" v={live.spiteParts.brow} min={0} max={1} />
+            <Bar k="실눈" v={live.spiteParts.squint} min={0} max={1} />
+            <Bar k="코 찡긋" v={live.spiteParts.sneer} min={0} max={1} />
+          </>
+        )}
+        <label className={styles.row}>
+          <span>필터 고정</span>
+          <input
+            type="range"
+            min={-0.05}
+            max={1}
+            step={0.05}
+            defaultValue={-0.05}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              live.filterOverride = v < 0 ? null : v;
+            }}
+          />
+          <span className={styles.num}>{live.filterOverride === null ? '자동' : live.filterOverride.toFixed(2)}</span>
+        </label>
       </Section>
 
       <Section title="성능">
@@ -88,7 +118,7 @@ export function DebugPanel({ video }: { video: HTMLVideoElement | null }) {
 
       {mode === 'mouse' && (
         <p className={styles.hint}>
-          마우스 이동 = 시점 · Shift + 좌우 = 기울이기 · 마우스를 빠르게 좌우로 흔들기 = 흔들기
+          마우스 이동 = 시점 · 마우스를 빠르게 좌우로 흔들기 = 흔들기(첫 화면)
         </p>
       )}
     </aside>

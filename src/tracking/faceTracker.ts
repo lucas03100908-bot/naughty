@@ -2,7 +2,7 @@ import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import { HEAD, ONE_EURO_ANGLE, ONE_EURO_POSITION, SCREEN, TRACKING, WEBCAM } from '@/src/game/constants';
 import { emitShake, live } from '@/src/game/store';
 import { OneEuroFilter } from './oneEuro';
-import { rollToFlow, ShakeDetector } from './gestures';
+import { ShakeDetector } from './gestures';
 import { readBlendshapes } from './expression';
 
 // Iris centres from the 478-point mesh. 468 = subject's right eye, 473 = subject's left eye.
@@ -19,7 +19,26 @@ export interface FaceTracker {
  * Starts the webcam and Face Landmarker. All processing stays in the browser; frames are
  * never uploaded or stored. Results are written into `live`.
  */
+/**
+ * MediaPipe's wasm prints informational lines (e.g. "INFO: Created TensorFlow Lite XNNPACK
+ * delegate for CPU.") through console.error, which the Next.js dev overlay reports as errors.
+ * Drop exactly those lines; every other console.error passes through untouched.
+ */
+let consoleFiltered = false;
+function filterMediaPipeInfoLogs() {
+  if (consoleFiltered) return;
+  consoleFiltered = true;
+  const original = console.error.bind(console);
+  console.error = (...args: unknown[]) => {
+    const first = args[0];
+    if (typeof first === 'string' && /^(INFO|W\d{4}|I\d{4}).*(TensorFlow Lite|XNNPACK|delegate|gl_context|landmark_projection)/.test(first)) return;
+    if (typeof first === 'string' && first.startsWith('INFO: ')) return;
+    original(...args);
+  };
+}
+
 export async function startFaceTracker(): Promise<FaceTracker> {
+  filterMediaPipeInfoLogs();
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { width: WEBCAM.width, height: WEBCAM.height, facingMode: 'user' },
     audio: false,
@@ -111,13 +130,24 @@ export async function startFaceTracker(): Promise<FaceTracker> {
     const yawDeg = m ? Math.atan2(m[8], m[10]) * DEG : live.yawDeg;
 
     const t = now / 1000;
-    live.head.x = fx.filter(xCm, t);
-    live.head.y = fy.filter(yCm, t);
+    // Tilting the head toward a shoulder swings the eyes around the neck. That is a gesture for
+    // the snow, not a change of viewpoint, so take the swing back out of the head position.
+    const rollRad = rollDeg / DEG;
+    const viewX = xCm - HEAD.rollPivotCm * Math.sin(rollRad);
+    const viewY = yCm + HEAD.rollPivotCm * (1 - Math.cos(rollRad));
+    live.head.x = fx.filter(viewX, t);
+    live.head.y = fy.filter(viewY, t);
     live.head.z = fz.filter(zCm, t);
     live.rollDeg = fRoll.filter(rollDeg, t);
     live.yawDeg = fYaw.filter(yawDeg, t);
-    live.flow = rollToFlow(live.rollDeg);
+    // Tilting is tracked (and shown in the debug panel) but no longer moves the snow.
+    live.flow = 0;
     readBlendshapes(result.faceBlendshapes?.[0], live.blend);
+    for (let i = 0; i < Math.min(lm.length, 478); i++) {
+      live.landmarks[i * 2] = lm[i].x;
+      live.landmarks[i * 2 + 1] = lm[i].y;
+    }
+    live.landmarksAt = now;
 
     // Shake runs on unfiltered yaw: the filter would eat the quick reversals.
     if (shake.update(now, yawDeg)) emitShake('camera');

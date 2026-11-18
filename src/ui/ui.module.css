@@ -16,11 +16,24 @@
   margin: 0 0 8px;
 }
 .title {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'olivia', Georgia, serif;
   font-weight: 400;
-  font-size: clamp(36px, 6vw, 64px);
-  letter-spacing: 0.08em;
-  margin: 0;
+  font-style: normal;
+  /* Christmas red. */
+  color: #d2232a;
+  font-size: clamp(40px, 8.5vw, 96px);
+  letter-spacing: 0.12em;
+  line-height: 0.95;
+  /*
+   * Wider than the intro column, so it centres on its own (left 50% + translate), and is
+   * stretched a little taller. transform doesn't move layout, so the margin makes room.
+   */
+  white-space: nowrap;
+  width: max-content;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%) scaleY(1.15);
+  margin: 0.1em 0;
 }
 .lede {
   color: #b9b2a6;
@@ -195,4 +208,361 @@
   border-radius: 6px;
   transform: scaleX(-1);
   display: block;
+}
+
+/* ---------- game ---------- */
+.subtitle {
+  position: fixed;
+  left: 50%;
+  bottom: 9vh;
+  transform: translateX(-50%);
+  width: min(640px, calc(100vw - 32px));
+  margin: 0;
+  text-align: center;
+  font-size: clamp(17px, 2.2vw, 22px);
+  line-height: 1.5;
+  color: #f2ece1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+  z-index: 12;
+  pointer-events: none;
+  animation: subIn 400ms ease both;
+}
+.speaker {
+  color: #e7b46a;
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
+  margin-right: 6px;
+}
+@keyframes subIn {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.hud {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(8, 9, 12, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ece6da;
+  z-index: 12;
+  pointer-events: none;
+}
+.hudBlock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.hudLabel {
+  font-size: 12px;
+  color: #a39d92;
+}
+.hudValue {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+}
+.hudWarn {
+  color: #ff9c7a;
+}
+.checklist {
+  display: flex;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: #cfc8bb;
+}
+.checklist li::before {
+  content: '○ ';
+  color: #8d877d;
+}
+.checklist li.done {
+  color: #e7b46a;
+}
+.checklist li.done::before {
+  content: '● ';
+  color: #e7b46a;
+}
+.stubNote {
+  position: fixed;
+  left: 50%;
+  bottom: 4vh;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 13px;
+  color: #8d877d;
+  z-index: 12;
+}
+.card {
+  position: fixed;
+  left: 50%;
+  bottom: 6vh;
+  transform: translateX(-50%);
+  width: min(380px, calc(100vw - 32px));
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: rgba(14, 12, 10, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(231, 180, 106, 0.25);
+  color: #ece6da;
+  text-align: center;
+  z-index: 12;
+}
+.cardScore {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 40px;
+  margin: 4px 0 12px;
+}
+.records {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  text-align: left;
+  font-size: 14px;
+}
+.records li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- judge ---------- */
+.judge {
+  position: fixed;
+  right: max(16px, 4vw);
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(34vw, 420px);
+  z-index: 12;
+  animation: judgeIn 500ms ease both;
+}
+@keyframes judgeIn {
+  from { opacity: 0; transform: translateY(calc(-50% + 12px)); }
+  to { opacity: 1; transform: translateY(-50%); }
+}
+.judgeFrame {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  overflow: visible;
+  background: #0b0c10;
+  border: 6px solid #6b1a1f;
+  box-shadow: 0 0 0 2px #e9d9b4 inset, 0 18px 50px rgba(0, 0, 0, 0.6);
+}
+.face {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.frost {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgba(220, 235, 255, 0.35) 85%, rgba(240, 248, 255, 0.7) 100%);
+  mix-blend-mode: screen;
+}
+.hollyTL,
+.hollyBR {
+  position: absolute;
+  width: 74px;
+  height: 46px;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+}
+.hollyTL {
+  left: -22px;
+  top: -20px;
+  transform: rotate(-18deg);
+}
+.hollyBR {
+  right: -22px;
+  bottom: -18px;
+  transform: rotate(162deg);
+}
+.judgeFallback {
+  margin: 0;
+  padding: 24px;
+  color: #b9b2a6;
+  font-size: 14px;
+}
+.holdButton {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 45%, #3a1216, #120a0b 70%);
+  color: #f2ece1;
+  font: inherit;
+  font-size: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+.holdButton:active:not(:disabled) {
+  background: radial-gradient(circle at 50% 45%, #6b1a1f, #1d0c0e 70%);
+}
+.holdButton small {
+  font-size: 12px;
+  color: #a39d92;
+}
+.holdButton:disabled {
+  cursor: default;
+  color: #8d877d;
+}
+.judgeStatus {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(8, 9, 12, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ece6da;
+}
+.judgeStage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: #e7b46a;
+}
+.judgeTime {
+  margin-left: auto;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  color: #ece6da;
+}
+.meter {
+  position: relative;
+  height: 10px;
+  margin-top: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.meterFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background: #8fa9c9;
+  transition: width 80ms linear;
+}
+.meterHot {
+  background: #d2232a;
+}
+.meterThreshold {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 1;
+}
+.meterLabel {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #a39d92;
+}
+.cardRows {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 6px;
+  font-size: 14px;
+  text-align: left;
+}
+.cardRows li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.cardTitle {
+  font-family: 'olivia', Georgia, serif;
+  color: #d2232a;
+  font-size: 24px;
+  letter-spacing: 0.06em;
+  margin: 0 0 2px;
+}
+@media (max-width: 720px) {
+  .judge {
+    top: auto;
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ---------- dive-in video ---------- */
+.transition {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition-property: opacity;
+  transition-timing-function: ease;
+  z-index: 11;
+}
+.transitionIn {
+  opacity: 1;
+}
+.channels {
+  margin-top: 10px;
+  display: grid;
+  gap: 4px;
+}
+.channel {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #a39d92;
+}
+.channelBar {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.channelBar i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #e7b46a;
+  border-radius: 3px;
+  transition: width 80ms linear;
+}
+.judgeWarn {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #ff9c8a;
 }

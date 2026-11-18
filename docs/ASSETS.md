@@ -10,7 +10,12 @@
 | shop_b | 60.82 MB | 1.47 MB | 1,882,915 | 100,000 |
 | tree | 66.11 MB | 0.87 MB | 1,944,140 | 50,000 |
 | street_lamp | 61.96 MB | 0.62 MB | 1,895,648 | 30,000 |
-| **합계** | 254.20 MB | 4.72 MB | | |
+| christmas_tree | 57.58 MB | 1.99 MB | 1,970,748 | 116,249 |
+| snowman | 56.18 MB | 0.97 MB | 1,878,797 | 55,740 |
+| ground | 64.94 MB | 1.01 MB | 1,930,446 | 60,000 |
+| **합계** | 432.90 MB | 8.69 MB | | |
+
+부품이 여러 개인 모델은 노드를 합치지 않고, 재질마다 처리한다. `npm run assets -- snowman`처럼 이름을 주면 그 모델만 다시 만든다.
 
 처리 순서: IP 영역 덮기 → 발광 맵 생성 → weld → simplify(meshoptimizer) → 텍스처 WebP 변환(베이스 컬러 2K/1K, 노멀 1K, 러프니스 512) → Meshopt 압축.
 
@@ -23,13 +28,18 @@
 | --- | --- | --- |
 | `wizarding shop 3d model (1).glb` | `shop_a.glb` | 텍스처에 유명 IP의 상점 이름 간판이 있어 흐리게 덮음(3곳) |
 | `wizarding shop 3d model.glb` | `shop_b.glb` | 읽히는 간판 글자 10곳을 흐리게 덮음 |
-| `tree 3d model.glb` | `tree.glb` | 기숙사 문장처럼 보이는 장식 7곳을 흐리게 덮음 |
+| `tree 3d model.glb` | `tree.glb` | 기숙사 문장처럼 보이는 장식 7곳을 흐리게 덮음. 가까이서 보면 마법사 모자·빗자루 장식이 보여 지금은 장면에서 쓰지 않음 |
 | `vintage street lamp 3d model.glb` | `street_lamp.glb` | 그대로 |
+| `christmas tree 3d model_Clone1.glb` | `christmas_tree.glb` | 마을 트리(장난) + 구석 장식 나무. 부품 15개 그대로 유지, 장식의 발광이 트리 전구 |
+| `snowman 3d model_Clone1.glb` | `snowman.glb` | 장난 눈사람. 부품 유지: part_1 머리, part_2 모자, part_4 눈, part_6 당근 코, part_3·5 팔, part_0 몸통 |
+| `7cdc771f-….glb` | `ground.glb` | 눈 덮인 돌길(연석·보도가 있는 휘어진 거리 한 구간). 마을 바닥. 높이 격자는 `scripts/ground-heights.mjs`가 `src/scene/groundHeights.ts`로 굽는다 |
 | `wizard duo 3d model.glb` | 사용 안 함 | 특정 캐릭터로 알아볼 수 있는 인물 2명. CLAUDE.md IP 원칙에 따라 제외 |
 
 덮을 위치는 macOS Vision OCR(4방향)과 텍스처 육안 검사로 찾았다. 좌표는 `scripts/optimize-assets.mjs`의 `cover` 배열에 있다. 모델을 다시 생성하면 좌표도 다시 찾아야 한다.
 
 ## 기타 파일
+
+- `public/video/dive.mp4` (1.9 MB): 들어가는 전환 영상. 원본 20.8MB(1080p)를 macOS AVFoundation으로 1280×720, 2.4Mbps H.264 + AAC 96kbps로 다시 인코딩했다. 영상에 로브 입은 두 아이와 올리밴더스를 흉내 낸 간판이 나온다(CLAUDE.md의 2026-11-18 결정).
 
 - `public/models/face_landmarker.task` (3.6 MB): Google MediaPipe 공식 모델(float16).
 - `public/mediapipe/` (wasm 14.7 MB × 2): `@mediapipe/tasks-vision`에서 복사. 브라우저가 지원하는 쪽 하나만 받는다.
