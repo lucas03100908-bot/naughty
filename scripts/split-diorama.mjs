@@ -8,7 +8,7 @@
 // it stands on y = 0 centred on the origin.
 import { NodeIO, getBounds } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { prune } from '@gltf-transform/functions';
+import { compactPrimitive, prune } from '@gltf-transform/functions';
 import { MeshoptDecoder } from 'meshoptimizer';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -37,6 +37,18 @@ const SHEETS = {
   },
   // Generated with `tripo make sheet_misc.webp --model H3.1 -p generate_parts=true --then texture`
   // (50 credits). Its fronts face +x.
+  // A snow-mountain terrain tile (Tripo): the rocky ridge at its back becomes the range behind the
+  // globe; the snowfield in front is cut away (`zMax`, in the tile's own units) so it doesn't run
+  // over the track.
+  range: {
+    dio_range: { parts: 'all', zMax: 0.08 },
+  },
+  // A tunnel mouth (Tripo): stone arch in a snowy rock mound, opening toward +z, closed behind.
+  // It stands on a white slab carrying its own straight track; everything below `yMin` (after
+  // grounding, in its own units) is cut away so only the diorama's curved loop runs into it.
+  tunnel: {
+    dio_tunnel: { parts: 'all', yMin: 0.125 },
+  },
   misc: {
     dio_pine_l: { parts: [0], rotY: -Math.PI / 2 },
     dio_pine_m: { parts: [3], rotY: -Math.PI / 2 },
@@ -97,7 +109,44 @@ function longAxis(nodes) {
   return 0.5 * Math.atan2(2 * sxz, sxx - szz);
 }
 
-async function writeProp(name, srcFile, keep, { forward, rotY } = {}) {
+/** Drop every triangle with a corner in front of z = zMax, then the vertices left unused. */
+function cropFront(prim, zMax) {
+  const pos = prim.getAttribute('POSITION');
+  const idx = prim.getIndices();
+  const src = idx.getArray();
+  const keep = [];
+  const v = [0, 0, 0];
+  for (let i = 0; i < src.length; i += 3) {
+    let ok = true;
+    for (let k = 0; k < 3 && ok; k++) ok = pos.getElement(src[i + k], v)[2] <= zMax;
+    if (ok) keep.push(src[i], src[i + 1], src[i + 2]);
+  }
+  idx.setArray(new Uint32Array(keep));
+  compactPrimitive(prim);
+}
+
+/** Drop every triangle lying wholly below y = yMin (in the node's world frame). */
+function cropBelow(node, yMin) {
+  const m = node.getWorldMatrix();
+  for (const prim of node.getMesh().listPrimitives()) {
+    const pos = prim.getAttribute('POSITION');
+    const src = prim.getIndices().getArray();
+    const keep = [];
+    const v = [0, 0, 0];
+    for (let i = 0; i < src.length; i += 3) {
+      let above = false;
+      for (let k = 0; k < 3 && !above; k++) {
+        pos.getElement(src[i + k], v);
+        above = m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13] >= yMin;
+      }
+      if (above) keep.push(src[i], src[i + 1], src[i + 2]);
+    }
+    prim.getIndices().setArray(new Uint32Array(keep));
+    compactPrimitive(prim);
+  }
+}
+
+async function writeProp(name, srcFile, keep, { forward, rotY, zMax, yMin } = {}) {
   const doc = await io.read(srcFile);
   const root = doc.getRoot();
   for (const ext of root.listExtensionsUsed()) if (ext.extensionName === 'KHR_materials_volume') ext.dispose();
@@ -105,6 +154,8 @@ async function writeProp(name, srcFile, keep, { forward, rotY } = {}) {
   const meshNodes = root.listNodes().filter((n) => n.getMesh());
   const kept = meshNodes.filter((n) => keep(n));
   for (const n of meshNodes) if (!kept.includes(n)) n.dispose();
+
+  if (zMax !== undefined) for (const n of kept) for (const prim of n.getMesh().listPrimitives()) cropFront(prim, zMax);
 
   // One parent holds the kept parts; its transform does the turning and grounding.
   const pivot = doc.createNode(name);
@@ -127,6 +178,8 @@ async function writeProp(name, srcFile, keep, { forward, rotY } = {}) {
   const b = getBounds(pivot);
   const t = pivot.getTranslation();
   pivot.setTranslation([t[0] - (b.min[0] + b.max[0]) / 2, t[1] - b.min[1], t[2] - (b.min[2] + b.max[2]) / 2]);
+  // After grounding, so yMin is measured from the prop's foot; it keeps standing where it was.
+  if (yMin !== undefined) for (const n of kept) cropBelow(n, yMin);
 
   await doc.transform(prune());
   const out = path.join(OUT, `${name}.glb`);
@@ -169,8 +222,8 @@ for (const [sheet, props] of Object.entries(SHEETS)) {
     }
     continue;
   }
-  for (const [name, { parts, rotY }] of Object.entries(props)) {
+  for (const [name, { parts, rotY, zMax, yMin }] of Object.entries(props)) {
     if (only.length && !only.includes(name)) continue;
-    await writeProp(name, file, (n) => parts === 'all' || parts.includes(partIndex(n)), { rotY });
+    await writeProp(name, file, (n) => parts === 'all' || parts.includes(partIndex(n)), { rotY, zMax, yMin });
   }
 }

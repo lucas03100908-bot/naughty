@@ -75,5 +75,5 @@ export function GlobeLights() {
   );
 }
 
-const OUTSIDE_FOG = new THREE.Color('#030305');
+const OUTSIDE_FOG = new THREE.Color(LOOK.fogColor);
 const INSIDE_FOG = new THREE.Color('#0d1424');

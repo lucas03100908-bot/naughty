@@ -1,167 +1,127 @@
 'use client';
- 
+/* eslint-disable react-hooks/immutability -- three.js objects are configured in place by design (R3F). */
+import { useGLTF, useTexture } from '@react-three/drei';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { DIORAMA } from '@/src/game/constants';
+import { PROPS, TUNNEL_PAD } from './layout';
 import { DIO, Prop, useBaked } from './props';
-import { groundHeight, lightPool, rand, trackPoint } from './terrain';
+import { fieldUV, groundHeight, lightPool, noise, rand, trackPoint } from './terrain';
 
 /** Snow, shared by the ground and the peaks: bright, a touch blue in the shade. */
 export const SNOW_COLOR = '#c9d0de';
 const snowMaterial = () => new THREE.MeshStandardMaterial({ color: SNOW_COLOR, roughness: 0.8, emissive: '#0c1222', emissiveIntensity: 0.5 });
 
-/** The snow on the table: one mesh, shaped by groundHeight. */
+/** Rock where the snow can't hold: steep faces and ridgelines of the mountains. */
+const ROCK = new THREE.Color('#5d5047');
+
+/**
+ * The snow on the table: one mesh, shaped by groundHeight. Vertex colours carry the lamp's pool
+ * of light, a little shade down in the grooves, and bare rock streaking the steep upper faces.
+ */
 function SnowGround() {
   const geometry = useMemo(() => {
     const g = new THREE.PlaneGeometry(3.6, 3.3, 240, 220);
     g.rotateX(-Math.PI / 2);
     g.translate(0, 0, -0.95);
     const pos = g.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) pos.setY(i, groundHeight(pos.getX(i), pos.getZ(i)));
+    g.computeVertexNormals();
+    const nrm = g.attributes.normal as THREE.BufferAttribute;
     const col = new Float32Array(pos.count * 3);
+    const c = new THREE.Color();
+    const snow = new THREE.Color(1, 1, 1);
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
+      const y = pos.getY(i);
       const z = pos.getZ(i);
-      pos.setY(i, groundHeight(x, z));
-      col.fill(lightPool(x, z), i * 3, i * 3 + 3);
+      const ny = nrm.getY(i);
+      // Shade the grooves and flanks a touch, so the piping reads.
+      const shade = 0.78 + 0.22 * THREE.MathUtils.smoothstep(ny, 0.55, 0.98);
+      // Streaks of rock: steep, high, and along a stretched noise so they run down the slope.
+      const steep = THREE.MathUtils.smoothstep(ny, 0.86, 0.62);
+      const high = THREE.MathUtils.smoothstep(y, 0.07, 0.16);
+      const streak = THREE.MathUtils.smoothstep(noise(x * 9 + z * 3, y * 26) * 0.7 + noise(x * 31, z * 31) * 0.3, 0.5, 0.68);
+      const rock = steep * high * streak * 0.85;
+      c.copy(snow).lerp(ROCK, rock).multiplyScalar(lightPool(x, z) * shade);
+      col.set([c.r, c.g, c.b], i * 3);
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    g.computeVertexNormals();
+    // The snowfield's colour map (its rock and shadowed hollows), laid flat from above.
+    const uv = g.attributes.uv as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      const [u, v] = fieldUV(pos.getX(i), pos.getZ(i));
+      uv.setXY(i, u, 1 - v);
+    }
     return g;
   }, []);
+  const field = useTexture('/models/snowfield_color.jpg');
   const material = useMemo(() => {
+    field.colorSpace = THREE.SRGBColorSpace;
+    field.wrapS = field.wrapT = THREE.ClampToEdgeWrapping;
+    field.anisotropy = 4;
     const m = snowMaterial();
     m.vertexColors = true;
+    m.map = field;
     return m;
-  }, []);
+  }, [field]);
   return <mesh geometry={geometry} material={material} />;
 }
 
 /**
- * A dollop of piped cream: a soft cone whose radius ripples along a groove that spirals up to a
- * curled tip, bulging where it slumps onto the table. Unit radius and height.
+ * Each tunnel is two tunnel-mouth models back to back across the track, one facing each way, their
+ * closed backs meeting in the middle: a rocky snow-capped hill the train runs through.
  */
-function pipedPeak(twist: number, ridges: number, seed: number) {
-  const radial = 56;
-  const rows = 44;
-  const g = new THREE.BufferGeometry();
-  const pos: number[] = [];
-  const idx: number[] = [];
-  for (let j = 0; j <= rows; j++) {
-    const u = j / rows;
-    for (let i = 0; i <= radial; i++) {
-      const t = (i / radial) * Math.PI * 2;
-      const groove = 1 + 0.13 * Math.sin(t * ridges + u * twist + seed) * (1 - u * 0.6);
-      const slump = 1 + 0.22 * (1 - u) ** 5;
-      const r = (1 - u) ** 0.9 * groove * slump;
-      // The tip leans and curls over.
-      const lean = u ** 3 * 0.18;
-      pos.push(Math.cos(t) * r + lean * Math.cos(seed), u, Math.sin(t) * r + lean * Math.sin(seed));
-    }
-  }
-  for (let j = 0; j < rows; j++)
-    for (let i = 0; i < radial; i++) {
-      const a = j * (radial + 1) + i;
-      const b = a + radial + 1;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
-    }
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
+const TUNNEL_MODEL = {
+  /** Model scale: its arch (≈0.385 tall in its own units) a good bit taller than the locomotive. */
+  scale: 0.143,
+  /** Where the arch face is, in its own units along +z (its back is at -0.48). */
+  face: 0.27,
+  /**
+   * Height (its own units) where split-diorama cut off its slab and straight track: that edge goes
+   * just under the snow, so only the diorama's own curved rails run into the arch.
+   */
+  cut: 0.125,
+};
+/**
+ * How far round the loop (radians) each portal is from its tunnel's centre: one model's depth
+ * from arch face to back. The train is clipped at the portals.
+ */
+export const TUNNEL_REACH = ((TUNNEL_MODEL.face + 0.48) * TUNNEL_MODEL.scale) / DIORAMA.trackRadius;
 
-/** [x, z, radius, height, variant] of the free-standing peaks. */
-const PEAKS: [number, number, number, number, number][] = [
-  [-0.6, 0.08, 0.09, 0.15, 0],
-  [-0.76, -0.3, 0.12, 0.22, 1],
-  [-0.96, 0.0, 0.1, 0.17, 0],
-  [0.62, 0.06, 0.09, 0.15, 1],
-  [0.78, -0.32, 0.12, 0.24, 0],
-  [0.98, 0.02, 0.1, 0.16, 1],
-  [-0.55, -0.95, 0.1, 0.16, 1],
-  [0.47, -1.02, 0.09, 0.14, 0],
-  [-1.15, -0.45, 0.13, 0.2, 1],
-  [1.15, -0.45, 0.13, 0.2, 0],
-]
-/** Peaks the train runs through. */
-const TUNNEL_RADIUS = 0.1;
-const TUNNEL_HEIGHT = 0.16;
-
-function Peaks() {
-  const variants = useMemo(() => [pipedPeak(15, 5, 0.6), pipedPeak(11, 4, 2.4)], []);
-  const material = useMemo(() => snowMaterial(), []);
-  const meshA = useRef<THREE.InstancedMesh>(null);
-  const meshB = useRef<THREE.InstancedMesh>(null);
-  const placed = useMemo(() => {
-    const list: { x: number; z: number; r: number; h: number; v: number; rot: number }[] = PEAKS.map(([x, z, r, h, v], i) => ({ x, z, r, h, v, rot: rand(i, 3) * Math.PI * 2 }));
-    DIORAMA.tunnels.forEach((a, i) => {
-      const p = trackPoint(a);
-      list.push({ x: p.x, z: p.z, r: TUNNEL_RADIUS, h: TUNNEL_HEIGHT, v: i % 2, rot: rand(i, 9) * Math.PI * 2 });
+function TunnelMouth({ at, side }: { at: number; side: number }) {
+  const { scene } = useGLTF(DIO.tunnel);
+  const object = useMemo(() => {
+    const clone = scene.clone(true);
+    clone.scale.setScalar(TUNNEL_MODEL.scale);
+    clone.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const m = mesh.material as THREE.MeshStandardMaterial;
+      m.envMapIntensity = 0.5;
+      // The lanterns inside the arch.
+      if (m.emissiveMap) m.emissiveIntensity = 2.2;
     });
-    return list;
-  }, []);
-
-  useLayoutEffect(() => {
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const up = new THREE.Vector3(0, 1, 0);
-    for (const v of [0, 1]) {
-      const mesh = (v === 0 ? meshA : meshB).current;
-      if (!mesh) continue;
-      let n = 0;
-      for (const p of placed) {
-        if (p.v !== v) continue;
-        q.setFromAxisAngle(up, p.rot);
-        m.compose(new THREE.Vector3(p.x, groundHeight(p.x, p.z) - 0.01, p.z), q, new THREE.Vector3(p.r, p.h, p.r));
-        mesh.setMatrixAt(n++, m);
-      }
-      mesh.count = n;
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.computeBoundingSphere();
-    }
-  }, [placed]);
-
-  return (
-    <>
-      {variants.map((g, v) => (
-        <instancedMesh key={v} ref={v === 0 ? meshA : meshB} args={[g, material, placed.length]} />
-      ))}
-    </>
-  );
+    return clone;
+  }, [scene]);
+  const { position, rotY } = useMemo(() => {
+    const portal = at + side * TUNNEL_REACH;
+    const p = trackPoint(portal);
+    // Facing along the track, away from the tunnel's centre.
+    const dir = new THREE.Vector3(-Math.sin(portal), 0, Math.cos(portal)).multiplyScalar(side);
+    // Arch face on the portal: the model's origin sits a face-depth back from it.
+    p.addScaledVector(dir, -TUNNEL_MODEL.face * TUNNEL_MODEL.scale);
+    p.y = -(TUNNEL_MODEL.cut + 0.01) * TUNNEL_MODEL.scale;
+    return { position: p, rotY: Math.atan2(dir.x, dir.z) };
+  }, [at, side]);
+  return <primitive object={object} position={position} rotation-y={rotY} />;
 }
 
-/** Stone arches where the track goes into each tunnel peak, dark inside. */
-function TunnelPortals() {
-  const portals = useMemo(() => {
-    const out: { pos: THREE.Vector3; rotY: number }[] = [];
-    // How far round the loop the peak's foot reaches from its centre.
-    // The peak slumps ~1.2× wider at its foot; the arch sits just inside that.
-    const reach = (TUNNEL_RADIUS * 1.12) / DIORAMA.trackRadius;
-    for (const a of DIORAMA.tunnels)
-      for (const side of [-1, 1]) {
-        const at = a + side * reach;
-        const pos = trackPoint(at);
-        // Facing along the track, out of the hill.
-        const tangent = new THREE.Vector3(-Math.sin(at), 0, Math.cos(at)).multiplyScalar(side);
-        out.push({ pos, rotY: Math.atan2(tangent.x, tangent.z) });
-      }
-    return out;
-  }, []);
-  const arch = useMemo(() => new THREE.TorusGeometry(0.028, 0.007, 8, 20, Math.PI), []);
-  const hole = useMemo(() => new THREE.CircleGeometry(0.028, 20, 0, Math.PI), []);
+function Tunnels() {
   return (
     <>
-      {portals.map((p, i) => (
-        <group key={i} position={p.pos} rotation-y={p.rotY}>
-          <mesh geometry={arch}>
-            <meshStandardMaterial color="#6f6a66" roughness={0.9} />
-          </mesh>
-          <mesh geometry={hole} position-z={-0.004}>
-            <meshBasicMaterial color="#050506" />
-          </mesh>
-        </group>
-      ))}
+      {DIORAMA.tunnels.map((a) => [-1, 1].map((side) => <TunnelMouth key={`${a}${side}`} at={a} side={side} />))}
     </>
   );
 }
@@ -202,29 +162,56 @@ function Track() {
   );
 }
 
-/** The models standing on the table: [model, x, z, height, rotY, keep-clear radius]. */
-const PROPS: [keyof typeof DIO, number, number, number, number, number][] = [
-  ['chalet', -0.64, -0.68, 0.14, 0.5, 0.13],
-  ['rental', 0.55, -0.84, 0.085, -0.45, 0.09],
-  ['houseA', -0.98, -1.2, 0.1, 0.75, 0.1],
-  ['houseB', 1.02, -1.22, 0.1, -0.7, 0.1],
-  ['signpost', 0.45, -0.74, 0.05, -0.3, 0.03],
-  ['logs', -0.5, -0.6, 0.022, 0.2, 0.03],
-  ['fence', -0.72, -0.55, 0.024, 0.5, 0.04],
-  ['bridge', -0.3, -0.66, 0.03, 0.15, 0.06],
-  ['rock', 0.74, -0.52, 0.05, 0.9, 0.05],
-  ['rock', -0.86, -0.58, 0.045, -0.6, 0.05],
-  ['snowPile', -0.22, -0.82, 0.022, 0.4, 0.04],
-  ['snowPile', 0.28, -0.72, 0.02, 1.7, 0.04],
-  ['snowPile', 0.7, -0.14, 0.018, 2.6, 0.03],
+
+
+/** Rocky peaks far behind, on the dark beyond the table's edge: [x, z, height, rotY]. */
+const SKYLINE: [number, number, number, number][] = [
+  [-1.45, -2.25, 0.42, 2.1],
+  [1.6, -2.25, 0.4, -1.4],
 ];
+
+/**
+ * The mountain range behind the globe: a Tripo snow-terrain tile cut down to its rocky ridge,
+ * stretched across the back of the table and squashed a little in height so it stays a model's
+ * mountain, not a real one. The tile stands on a thick slab with its snowfield about halfway up,
+ * so it is sunk by half its height; terrain's berm hides the cut edge in front.
+ */
+const RANGE = { width: 2.9, height: 0.9, front: -1.72, sinkFrac: 0.5 };
+
+function Range() {
+  const { scene } = useGLTF(DIO.range);
+  const object = useMemo(() => {
+    const clone = scene.clone(true);
+    const box = new THREE.Box3().setFromObject(clone, true);
+    const size = box.getSize(new THREE.Vector3());
+    const k = RANGE.width / size.x;
+    clone.scale.set(k, RANGE.height / size.y, k);
+    clone.position.set(0, -RANGE.height * RANGE.sinkFrac, RANGE.front - (size.z * k) / 2);
+    clone.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const m = mesh.material as THREE.MeshStandardMaterial;
+      m.envMapIntensity = 0.4;
+      // Where the cut edge peeks over the berm, show the tile's inside rather than a hole.
+      m.side = THREE.DoubleSide;
+      mesh.receiveShadow = true;
+    });
+    return clone;
+  }, [scene]);
+  return <primitive object={object} />;
+}
 
 /** Is (x, z) somewhere a tree may stand: off the track, away from the globe, the peaks and the props. */
 export function freeSpot(x: number, z: number) {
   const r = Math.hypot(x, z);
   if (r < DIORAMA.clearRadius + 0.05) return false;
+  // Not up on the range behind.
+  if (z < RANGE.front + 0.04) return false;
   if (Math.abs(r - DIORAMA.trackRadius) < 0.05) return false;
-  for (const [px, pz, pr] of PEAKS) if (Math.hypot(x - px, z - pz) < pr * 0.95) return false;
+  for (const t of DIORAMA.tunnels) {
+    const p = trackPoint(t);
+    if (Math.hypot(x - p.x, z - p.z) < TUNNEL_PAD) return false;
+  }
   for (const [, px, pz, , , pr] of PROPS) if (Math.hypot(x - px, z - pz) < pr) return false;
   return true;
 }
@@ -284,12 +271,15 @@ export function Scenery() {
   return (
     <>
       <SnowGround />
-      <Peaks />
-      <TunnelPortals />
+      <Tunnels />
       <Track />
       <Pines />
       {PROPS.map(([model, x, z, height, rotY], i) => (
         <Prop key={i} url={DIO[model]} at={[x, z]} height={height} rotY={rotY} />
+      ))}
+      <Range />
+      {SKYLINE.map(([x, z, height, rotY], i) => (
+        <Prop key={`sky${i}`} url={DIO.mountain} at={[x, z]} height={height} rotY={rotY} base={-0.06} />
       ))}
     </>
   );

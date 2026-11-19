@@ -335,7 +335,24 @@ export const LOOK = {
   /** …and every frame for this long after a prank or a phase change. */
   shadowHotSec: 4,
   /** Fog [near, far] in world units: outside (the whole globe in view) and inside (street scale). */
-  fogOutside: [3.6, 7] as [number, number],
+  fogOutside: [2.6, 7.5] as [number, number],
+  /**
+   * Tilt-shift from outside, so the diorama reads as a model on a table: a band of focus through
+   * the globe (screen height, 0 = bottom), blur growing above and below it. Off inside the globe.
+   */
+  tiltFocusY: 0.41,
+  tiltTaper: 0.36,
+  tiltBlur: 0.1,
+  /** The miniature grade from outside: a little more saturation and contrast (0 = none). */
+  miniSaturation: 0.16,
+  miniContrast: 0.08,
+  /** The HDRI night sky: how bright behind the diorama, turned so its horizon glow sits behind the range. */
+  skyIntensity: 0.45,
+  skyRotation: 1.38,
+  /** How much the HDRI lights the scene (props have their own envMapIntensity on top). */
+  envIntensity: 0.45,
+  /** Distant scenery fades into the sky's horizon (bake-sky's horizon colour at skyIntensity). */
+  fogColor: '#2d2f3b',
   fogInside: [0.12, 0.75] as [number, number],
   /** Screen-space ambient occlusion (contact shading where walls meet the street). */
   /** Studio lights (hemisphere, fill, key) inside the globe, as a share of outside. */

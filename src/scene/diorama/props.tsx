@@ -30,7 +30,10 @@ export const DIO = {
   pineM: '/models/dio_pine_m.glb',
   pineS: '/models/dio_pine_s.glb',
   logs: '/models/dio_logs.glb',
+  mountain: '/models/dio_mountain.glb',
+  range: '/models/dio_range.glb',
   rock: '/models/dio_rock.glb',
+  tunnel: '/models/dio_tunnel.glb',
   snowPile: '/models/dio_snow_pile.glb',
   signpost: '/models/dio_signpost.glb',
   fence: '/models/dio_fence.glb',
@@ -92,10 +95,11 @@ export function useModel(url: string, height: number) {
 }
 
 /** A prop standing on the snow at (x, z). */
-export function Prop({ url, at, height, rotY = 0, sink = 0.004 }: { url: string; at: [number, number]; height: number; rotY?: number; sink?: number }) {
+export function Prop({ url, at, height, rotY = 0, sink = 0.004, base }: { url: string; at: [number, number]; height: number; rotY?: number; sink?: number; base?: number }) {
   const object = useModel(url, height);
   const [x, z] = at;
-  return <primitive object={object} position={[x, groundHeight(x, z) - sink, z]} rotation-y={rotY} />;
+  // `base`: stand at this height instead of on the snow (beyond the table's edge).
+  return <primitive object={object} position={[x, base ?? groundHeight(x, z) - sink, z]} rotation-y={rotY} />;
 }
 
 Object.values(DIO).forEach((u) => useGLTF.preload(u));

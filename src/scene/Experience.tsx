@@ -172,6 +172,19 @@ function Director() {
   return null;
 }
 
+/** Baked from a moonless-night HDRI by scripts/bake-sky.mjs: its starry sky only, no ground. */
+const SKY_HDRI = '/hdri/sky.hdr';
+
+/** The sky dims to near-black from inside the globe (night street), and sits low outside it. */
+function SkyDimmer() {
+  const scene = useThree((s) => s.scene);
+  useFrame(() => {
+    scene.backgroundIntensity = THREE.MathUtils.lerp(LOOK.skyIntensity, 0.04, live.viewBlend);
+    scene.environmentIntensity = THREE.MathUtils.lerp(LOOK.envIntensity, LOOK.envIntensity * 0.5, live.viewBlend);
+  });
+  return null;
+}
+
 function Lights() {
   const target = useMemo(() => {
     const o = new THREE.Object3D();
@@ -216,6 +229,8 @@ export default function Experience() {
       onCreated={({ gl }) => {
         // The glass's refraction is soft; render what's behind it at half resolution.
         gl.transmissionResolutionScale = LOOK.transmissionScale;
+        // The diorama's train is clipped where it goes into a tunnel.
+        gl.localClippingEnabled = true;
       }}
       camera={{ position: [0, 0, 3], near: CAMERA.near, far: CAMERA.far, manual: true } as never}
       style={{ position: 'fixed', inset: 0 }}
@@ -227,14 +242,17 @@ export default function Experience() {
         onFallback={() => setDpr(LOOK.dprMin)}
       />
       <color attach="background" args={['#030305']} />
-      <fog attach="fog" args={['#030305', 3.8, 8]} />
+      <fog attach="fog" args={[LOOK.fogColor, 3.8, 9]} />
       <OffAxisRig />
       <Director />
       <SceneCapture />
       <JudgeDirector />
       <Lights />
-      {/* Generated environment (no HDR download): soft panels for reflections on the glass. */}
-      <Environment resolution={256} frames={1}>
+      {/* Starry night sky behind everything; the same HDRI lights the scene, with a soft panel added
+          for the glass's highlight. */}
+      <Environment files={SKY_HDRI} background="only" backgroundRotation={[0, LOOK.skyRotation, 0]} />
+      <SkyDimmer />
+      <Environment files={SKY_HDRI} resolution={256} frames={1} environmentRotation={[0, LOOK.skyRotation, 0]}>
         {/* A long soft strip on the right: the classic product-shot glass highlight. */}
         <Lightformer form="rect" intensity={2.6} position={[2.2, 0.6, 1.2]} rotation-y={-Math.PI / 3} scale={[0.5, 3.5, 1]} color="#fff3e6" />
       </Environment>

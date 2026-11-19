@@ -7,6 +7,7 @@ import { live } from '@/src/game/store';
 import { ChairLift } from './ChairLift';
 import { Scenery } from './Scenery';
 import { Skiers } from './Skiers';
+import { Snowfall } from './Snowfall';
 import { Train } from './Train';
 
 /**
@@ -26,6 +27,7 @@ export function Diorama() {
       <Train />
       <ChairLift />
       <Skiers />
+      <Snowfall />
     </group>
   );
 }

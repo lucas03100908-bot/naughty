@@ -99,7 +99,11 @@ const ALL_MODELS = [
     ['dio_pine_m', 1_000, 256, false, 0.2],
     ['dio_pine_s', 800, 256, false, 0.2],
     ['dio_logs', 1_200, 256, false],
+    ['dio_mountain', 4_000, 512, false],
+    // The range behind the globe: big on screen, so a real budget.
+    ['dio_range', 40_000, 2048, false, 0.005],
     ['dio_rock', 2_000, 512, false],
+    ['dio_tunnel', 12_000, 1024, true],
     ['dio_snow_pile', 1_200, 256, false],
     ['dio_signpost', 1_200, 256, false],
     ['dio_fence', 1_000, 256, false],

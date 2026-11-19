@@ -6,34 +6,49 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { DIORAMA } from '@/src/game/constants';
 import { DIO } from './props';
+import { TUNNEL_REACH } from './Scenery';
 import { trackPoint } from './terrain';
 
 /** One scale for every car, so the coaches stay in proportion to the locomotive. */
-const CAR_SCALE = 0.23;
+const CAR_SCALE = 0.17;
 const GAP = 0.006;
 /** Wheels on the rail tops. */
 const RIDE = DIORAMA.bedHeight + 0.006;
 const PUFFS = 10;
 const CARS = [DIO.locomotive, DIO.coachGreen, DIO.coachRed, DIO.coachRed];
 
-/** A car model, scaled, with its length along +x (the way it travels). */
+/** Clips nothing: every point is far on its positive side. */
+const OPEN = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1e3);
+/** Cars vanish this far inside a portal, behind its dark mouth. */
+const MOUTH = 0.006;
+
+/**
+ * A car model, scaled, with its length along +x (the way it travels). Its materials are its own,
+ * sharing one clipping plane that cuts it off where it goes into a tunnel.
+ */
 function useCar(url: string) {
   const { scene } = useGLTF(url);
   return useMemo(() => {
     const clone = scene.clone(true);
     clone.scale.setScalar(CAR_SCALE);
+    const clip = OPEN.clone();
     clone.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
-      const m = mesh.material as THREE.MeshStandardMaterial;
+      const m = (mesh.material as THREE.MeshStandardMaterial).clone();
       m.envMapIntensity = 0.5;
       if (m.emissiveMap) m.emissiveIntensity = 1.6;
+      m.clippingPlanes = [clip];
+      mesh.material = m;
     });
     // Precise: the split turned each car's parts, and a loose box of a turned mesh is too long.
     const box = new THREE.Box3().setFromObject(clone, true);
-    return { object: clone, length: box.max.x - box.min.x, height: box.max.y - box.min.y };
+    return { object: clone, clip, length: box.max.x - box.min.x, height: box.max.y - box.min.y };
   }, [scene]);
 }
+
+/** An angle folded into (-π, π]. */
+const wrap = (x: number) => Math.atan2(Math.sin(x), Math.cos(x));
 
 /** A toy steam train going round the globe's base, through two snow hills. */
 export function Train() {
@@ -60,6 +75,35 @@ export function Train() {
   // The chimney, in the locomotive's own space: near the front, at the top.
   const chimney = useMemo(() => new THREE.Vector3(cars[0].length * 0.28, cars[0].height, 0), [cars]);
   const smoke = useMemo(() => new THREE.Vector3(), []);
+  const portal = useMemo(() => ({ p: new THREE.Vector3(), n: new THREE.Vector3() }), []);
+
+  /**
+   * Hide the part of a car that is inside a tunnel: a car is shorter than a tunnel, so it is at
+   * most across one portal (one plane, keeping the outside) or wholly inside (hidden).
+   */
+  const clipAtTunnels = (a: number, car: (typeof cars)[number], g: THREE.Group) => {
+    const half = car.length / 2 / DIORAMA.trackRadius;
+    const reach = TUNNEL_REACH + MOUTH / DIORAMA.trackRadius;
+    car.clip.copy(OPEN);
+    g.visible = true;
+    for (const t of DIORAMA.tunnels) {
+      const d = wrap(a - t);
+      if (d + half < -reach || d - half > reach) continue;
+      if (d - half > -reach && d + half < reach) {
+        g.visible = false;
+        return;
+      }
+      // Across the portal on this side: keep what is beyond it, away from the hill.
+      const side = d < 0 ? -1 : 1;
+      const at = t + side * reach;
+      trackPoint(at, portal.p);
+      portal.n.set(-Math.sin(at), 0, Math.cos(at)).multiplyScalar(side);
+      car.clip.setFromNormalAndCoplanarPoint(portal.n, portal.p);
+      // Clipping planes are in world space; the diorama sits in the tilted table group.
+      if (g.parent) car.clip.applyMatrix4(g.parent.matrixWorld);
+      return;
+    }
+  };
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.1);
@@ -73,6 +117,7 @@ export function Train() {
       g.position.set(p.x, RIDE + Math.abs(Math.sin(a * 90 + i)) * 0.0006, p.z);
       // +x along the direction of travel (+angle).
       g.rotation.y = -a - Math.PI / 2;
+      clipAtTunnels(a, cars[i], g);
     });
     // Steam: puffs leave the chimney, rise, swell and fade.
     const loco = car0.current;
@@ -80,7 +125,7 @@ export function Train() {
     if (!loco || !mesh) return;
     loco.updateMatrix();
     smoke.copy(chimney).applyMatrix4(loco.matrix);
-    const inTunnel = DIORAMA.tunnels.some((t) => Math.abs(Math.atan2(Math.sin(a0 - t), Math.cos(a0 - t))) < 0.24);
+    const inTunnel = DIORAMA.tunnels.some((t) => Math.abs(wrap(a0 + cars[0].length * 0.28 / DIORAMA.trackRadius - t)) < TUNNEL_REACH);
     puffState.forEach((s, i) => {
       s.age += dt / 1.6;
       if (s.age >= 1) {
