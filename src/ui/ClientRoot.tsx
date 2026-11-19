@@ -10,6 +10,7 @@ import { SpiteFilter } from './spiteFilter';
 import { buildShareImage } from '@/src/game/share';
 import { captureScene } from '@/src/scene/capture';
 import { IntroOverlay } from './IntroOverlay';
+import { LoadingScreen } from './LoadingScreen';
 import { SoundDirector } from './SoundDirector';
 import { useInput } from './useInput';
 
@@ -33,6 +34,7 @@ export function ClientRoot() {
       <ResultCard />
       <SoundDirector />
       <DebugPanel video={video} />
+      <LoadingScreen />
     </>
   );
 }

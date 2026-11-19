@@ -68,12 +68,13 @@ const ALL_MODELS = [
   },
   // Distant versions of the shops, shown while the globe is seen from outside (each is a few dozen
   // pixels tall there): same source and covers, a fifth of the triangles, smaller textures.
-  { name: 'shop_a_far', src: 'shop_a', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_a', crop: 'shop_a' },
-  { name: 'shop_b_far', src: 'shop_b', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_b', crop: 'shop_b' },
+  { name: 'shop_a_far', src: 'shop_a', triangles: 7_000, error: 0.02, baseSize: 1024, mapSize: 512, emissive: true, cover: 'shop_a', crop: 'shop_a' },
+  { name: 'shop_b_far', src: 'shop_b', triangles: 7_000, error: 0.02, baseSize: 1024, mapSize: 512, emissive: true, cover: 'shop_b', crop: 'shop_b' },
   { name: 'street_lamp', triangles: 9_000, error: 0.01, baseSize: 1024, emissive: true, cover: [] },
   // Multi-part props: every part keeps its own node (the snowman's head and nose come off,
   // the tree's ornaments are its lights), every material is processed.
-  { name: 'christmas_tree', triangles: 80_000, baseSize: 1024, emissive: true, cover: [] },
+  // 116k triangles at the old error bound (its parts stopped simplifying early); half is plenty.
+  { name: 'christmas_tree', triangles: 60_000, error: 0.006, baseSize: 1024, emissive: true, cover: [] },
   { name: 'snowman', triangles: 20_000, baseSize: 1024, emissive: false, cover: [] },
   // Snowy cobbled street with curbs: the village ground.
   { name: 'ground', triangles: 60_000, baseSize: 2048, emissive: false, cover: [] },
@@ -108,7 +109,8 @@ const ALL_MODELS = [
     ['dio_signpost', 1_200, 256, false],
     ['dio_fence', 1_000, 256, false],
     ['dio_bridge', 2_000, 512, false],
-  ].map(([name, triangles, baseSize, emissive, error = 0.02]) => ({ name, triangles, baseSize, emissive, error, cover: [] })),
+    // Seen from outside only: the normal, roughness and glow maps never need more than 256 px.
+  ].map(([name, triangles, baseSize, emissive, error = 0.02]) => ({ name, triangles, baseSize, emissive, error, mapSize: 256, cover: [] })),
 ];
 
 // A string cover borrows another model's rectangles (same source atlas).
@@ -236,10 +238,12 @@ for (const m of MODELS) {
     prune(),
     dedup(),
     textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^baseColor/, resize: [m.baseSize, m.baseSize], quality: 82 }),
-    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^emissive/, resize: [1024, 1024], quality: 80 }),
-    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^normal/, resize: [1024, 1024], quality: 85 }),
-    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^metallicRoughness/, resize: [512, 512], quality: 80 }),
-    meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+    // `mapSize`: a cap on the side maps (glow, normal, roughness) for models that are only ever small.
+    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^emissive/, resize: [m.mapSize ?? 1024, m.mapSize ?? 1024], quality: 80 }),
+    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^normal/, resize: [m.mapSize ?? 1024, m.mapSize ?? 1024], quality: 85 }),
+    textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^metallicRoughness/, resize: [Math.min(512, m.mapSize ?? 512), Math.min(512, m.mapSize ?? 512)], quality: 80 }),
+    // 'high' adds the attribute filters (octahedral normals, quantized uvs): ~15% smaller after brotli.
+    meshopt({ encoder: MeshoptEncoder, level: 'high' }),
   );
 
   const outPath = path.join(OUT, `${m.name}.glb`);

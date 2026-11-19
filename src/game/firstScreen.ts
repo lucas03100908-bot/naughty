@@ -15,14 +15,21 @@ const GIVE_UP_MS = 12_000;
 let loaded = false;
 let shown = false;
 let inFlight = 0;
+/** Items started and finished so far, for the loading screen's bar. */
+let started = 0;
+let finished = 0;
 let timer = 0;
 const listeners = new Set<() => void>();
+/** Anything that shows load state (the loading screen): told on every change. */
+const watchers = new Set<() => void>();
+const notify = () => watchers.forEach((f) => f());
 
 function fire() {
   if (loaded) return;
   loaded = true;
   listeners.forEach((f) => f());
   listeners.clear();
+  notify();
 }
 
 /** Fire once the scene is up and no load has started for SETTLE_MS. */
@@ -37,13 +44,17 @@ if (typeof window !== 'undefined') {
   const { itemStart, itemEnd } = manager;
   manager.itemStart = (url) => {
     inFlight++;
+    started++;
     window.clearTimeout(timer);
+    notify();
     itemStart.call(manager, url);
   };
   manager.itemEnd = (url) => {
     inFlight = Math.max(0, inFlight - 1);
+    finished++;
     itemEnd.call(manager, url);
     settle();
+    notify();
   };
   window.setTimeout(fire, GIVE_UP_MS);
 }
@@ -53,6 +64,7 @@ export function markSceneShown() {
   if (shown) return;
   shown = true;
   settle();
+  notify();
 }
 
 /** Runs `cb` once the first screen has loaded (at once if it already has). */
@@ -69,4 +81,19 @@ const subscribe = (cb: () => void) => {
 
 export function useFirstScreenLoaded() {
   return useSyncExternalStore(subscribe, () => loaded, () => false);
+}
+
+const watch = (cb: () => void) => {
+  watchers.add(cb);
+  return () => watchers.delete(cb);
+};
+
+/** True once the scene has drawn its first frames (the globe is on screen). */
+export function useSceneShown() {
+  return useSyncExternalStore(watch, () => shown, () => false);
+}
+
+/** Share of the first screen's files loaded so far, 0..1 (the total grows as loads start). */
+export function useLoadProgress() {
+  return useSyncExternalStore(watch, () => (started ? finished / started : 0), () => 0);
 }

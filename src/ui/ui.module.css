@@ -17,6 +17,71 @@
   pointer-events: none;
   background: radial-gradient(ellipse 50% 55% at 50% 62%, rgba(6, 7, 12, 0.72), rgba(6, 7, 12, 0.4) 55%, transparent 100%);
 }
+/* ---------- loading: until the globe is on screen ---------- */
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: radial-gradient(ellipse 60% 50% at 50% 55%, #0d0f18, #030305 70%);
+  color: #e9e4da;
+  transition-property: opacity;
+  transition-timing-function: ease;
+}
+.loadingDone {
+  opacity: 0;
+  pointer-events: none;
+}
+.loadingLine {
+  margin: 0;
+  font-family: var(--font-ko-display);
+  font-size: clamp(20px, 2.6vw, 28px);
+  letter-spacing: 0.08em;
+  color: #f4eee3;
+  animation: loadingBreath 2.4s ease-in-out infinite;
+}
+/* The trailing dots arrive one by one: someone is on the way. */
+.loadingLine::after {
+  content: '';
+  display: inline-block;
+  width: 1.4em;
+  text-align: left;
+  animation: loadingDots 1.8s steps(4, end) infinite;
+}
+.loadingBar {
+  width: min(180px, 40vw);
+  height: 2px;
+  background: rgba(233, 228, 218, 0.12);
+  overflow: hidden;
+  border-radius: 1px;
+}
+.loadingBar span {
+  display: block;
+  height: 100%;
+  background: #d9262d;
+  transform-origin: left;
+  transition: transform 300ms ease-out;
+}
+@keyframes loadingBreath {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes loadingDots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loadingLine,
+  .loadingLine::after {
+    animation: none;
+  }
+}
 .kicker {
   font-family: var(--font-ko-display);
   font-weight: 400;
