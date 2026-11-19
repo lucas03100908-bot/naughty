@@ -6,7 +6,6 @@ import { DebugPanel } from './DebugPanel';
 import { HUD, ResultCard, Subtitle } from './GameUI';
 import { GlyphPrimer } from './GlyphPrimer';
 import { JudgePanel } from './JudgePanel';
-import { VideoTransition } from './VideoTransition';
 import { SpiteFilter } from './spiteFilter';
 import { buildShareImage } from '@/src/game/share';
 import { captureScene } from '@/src/scene/capture';
@@ -27,7 +26,6 @@ export function ClientRoot() {
     <>
       <GlyphPrimer />
       <Experience />
-      <VideoTransition />
       <IntroOverlay onCamera={startCamera} onMouse={startMouse} />
       <HUD />
       <Subtitle />

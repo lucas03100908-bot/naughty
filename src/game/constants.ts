@@ -178,7 +178,7 @@ export const VIEW = {
    * viewBlend past which the village is drawn in full: the full shop models and the lamps' point
    * lights. Below it (globe seen from outside, the village a small model behind glass) the shops
    * use their distant models and the windows' own glow stands in for the lamps' light, which
-   * would otherwise cost every material in the scene. The dive video covers the swap going in.
+   * would otherwise cost every material in the scene.
    */
   nearDetailFrom: 0.3,
   /** Window centre inside, globe-local units (y measured from the floor). At the lane's mouth. */
@@ -202,18 +202,6 @@ export const VIEW = {
   pullSec: 2.4,
   /** Flake size multiplier at full inside view (flakes are huge up close otherwise). */
   insideFlakeScale: 0.08,
-};
-
-/** The dive-in transition video (public/video/dive.mp4, 6 s). See docs/TUNING.md. */
-export const VIDEO = {
-  src: '/video/dive.mp4',
-  /** Crossfade from the 3D globe into the video's first frame. */
-  fadeInSec: 0.35,
-  /** Fade from the video's last frame into the 3D street. */
-  fadeOutSec: 0.7,
-  volume: 0.8,
-  /** If the video never reports 'ended' (stalled network), give up after this long. */
-  maxSec: 9,
 };
 
 export const PLAY = {

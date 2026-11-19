@@ -1,3 +1,4 @@
+import { afterFirstScreen } from '@/src/game/firstScreen';
 import { PRANK } from '@/src/game/constants';
 import type { PrankId } from '@/src/game/scoring';
 
@@ -31,13 +32,15 @@ const CLIPS = {
 } as const;
 type Clip = keyof typeof CLIPS;
 
-// Fetch the files as soon as the page loads; they are decoded once the audio context exists.
+// Fetch the files once the first screen has loaded; they are decoded once the audio context exists.
 const clipBytes: Partial<Record<Clip, Promise<ArrayBuffer | null>>> = {};
 if (typeof window !== 'undefined')
   for (const [name, url] of Object.entries(CLIPS) as [Clip, string][])
-    clipBytes[name] = fetch(url)
-      .then((r) => (r.ok ? r.arrayBuffer() : null))
-      .catch(() => null);
+    clipBytes[name] = new Promise<void>((go) => afterFirstScreen(go)).then(() =>
+      fetch(url)
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .catch(() => null),
+    );
 
 /**
  * A buffer that loops without a seam: its last `fold` seconds are cross-faded (equal power) into

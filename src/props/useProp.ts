@@ -49,7 +49,13 @@ export const MODEL_URLS = {
   christmasTree: '/models/christmas_tree.glb',
   snowman: '/models/snowman.glb',
   ground: '/models/ground.glb',
-  pine: '/models/tree.glb',
+  // The diorama's snowy pine (already loaded for the outside), not tree.glb: that one wore wizard hats.
+  pine: '/models/dio_pine.glb',
 };
 
-Object.values(MODEL_URLS).forEach((u) => useGLTF.preload(u));
+/** Loaded only after the first screen (afterFirstScreen): seen from inside the globe only. */
+export const NEAR_ONLY = new Set<string>([MODEL_URLS.shopA, MODEL_URLS.shopB]);
+
+Object.values(MODEL_URLS).forEach((u) => {
+  if (!NEAR_ONLY.has(u)) useGLTF.preload(u);
+});

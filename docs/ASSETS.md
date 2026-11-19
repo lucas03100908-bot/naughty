@@ -26,9 +26,9 @@
 
 | 원본 파일 | 저장소 이름 | 처리 |
 | --- | --- | --- |
-| `wizarding shop 3d model (1).glb` | `shop_a.glb` | 텍스처에 유명 IP의 상점 이름 간판이 있어 흐리게 덮음(3곳) |
-| `wizarding shop 3d model.glb` | `shop_b.glb` | 읽히는 간판 글자 10곳을 흐리게 덮음 |
-| `tree 3d model.glb` | `tree.glb` | 기숙사 문장처럼 보이는 장식 7곳을 흐리게 덮음. 가까이서 보면 마법사 모자·빗자루 장식이 보여 지금은 장면에서 쓰지 않음 |
+| `wizarding shop 3d model (1).glb` | `shop_a.glb` | 텍스처에 유명 IP의 상점 이름 간판이 있어 흐리게 덮음(3곳). 가운데 창 위 '모자 든 해골' 조형물을 지오메트리에서 잘라냄(`crop`) |
+| `wizarding shop 3d model.glb` | `shop_b.glb` | 읽히는 간판 글자 10곳을 흐리게 덮음. 굴뚝 위 부엉이 풍향계와 문 위 날개 달린 금색 공을 잘라냄(`crop`) |
+| `tree 3d model.glb` | 사용 안 함 | 마법사 모자·빗자루·부엉이 장식. 모퉁이 나무 2그루는 `dio_pine.glb`로 바꿈(2026-11-19) |
 | `vintage street lamp 3d model.glb` | `street_lamp.glb` | 그대로 |
 | `christmas tree 3d model_Clone1.glb` | `christmas_tree.glb` | 마을 트리(장난) + 구석 장식 나무. 부품 15개 그대로 유지, 장식의 발광이 트리 전구 |
 | `snowman 3d model_Clone1.glb` | `snowman.glb` | 장난 눈사람. 부품 유지: part_1 머리, part_2 모자, part_4 눈, part_6 당근 코, part_3·5 팔, part_0 몸통 |
@@ -39,7 +39,7 @@
 
 ## 기타 파일
 
-- `public/video/dive.mp4` (1.9 MB): 들어가는 전환 영상. 원본 20.8MB(1080p)를 macOS AVFoundation으로 1280×720, 2.4Mbps H.264 + AAC 96kbps로 다시 인코딩했다. 영상에 로브 입은 두 아이와 올리밴더스를 흉내 낸 간판이 나온다(CLAUDE.md의 2026-11-18 결정).
+- 전환 영상(`dive.mp4`)은 2026-11-19에 뺐다. 로브 입은 아이들과 유명 IP를 흉내 낸 간판이 나와서다. 원본은 `assets/source/video/dive.mp4`(git 밖)에 남아 있다.
 
 - `public/models/face_landmarker.task` (3.6 MB): Google MediaPipe 공식 모델(float16).
 - `public/mediapipe/` (wasm 14.7 MB × 2): `@mediapipe/tasks-vision`에서 복사. 브라우저가 지원하는 쪽 하나만 받는다.

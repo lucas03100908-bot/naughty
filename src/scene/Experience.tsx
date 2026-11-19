@@ -4,7 +4,8 @@ import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { CAMERA, GLOBE, LOOK, PLAY, SCENE_TILT, VIDEO, VIEW } from '@/src/game/constants';
+import { markSceneShown } from '@/src/game/firstScreen';
+import { CAMERA, GLOBE, LOOK, PLAY, SCENE_TILT, VIEW } from '@/src/game/constants';
 import { live, useApp } from '@/src/game/store';
 import { applyOffAxis, eyeFromHeadCm, type ViewWindow } from '@/src/tracking/offAxisCamera';
 import { JudgeDirector } from './JudgeDirector';
@@ -154,14 +155,23 @@ function SceneCapture() {
   return null;
 }
 
+/** Tells firstScreen.ts the scene is up: mounts only once everything the canvas suspends on has resolved. */
+function FirstScreenMark() {
+  const frames = useRef(0);
+  useFrame(() => {
+    if (++frames.current === 3) markSceneShown();
+  });
+  return null;
+}
+
 /** Advances the state machine on time: start → play → judge. The judge runs in JudgeDirector. */
 function Director() {
   useFrame(() => {
     const s = useApp.getState();
     const now = performance.now();
     const since = (now - s.phaseAt) / 1000;
-    // The video normally ends the start phase (VideoTransition); this is the safety net.
-    if (s.phase === 'start' && since >= VIDEO.maxSec) s.enterPlay();
+    // Play starts once the dive has landed and Humbug's opening line is done.
+    if (s.phase === 'start' && since >= Math.max(VIEW.diveSec, PLAY.startLineSec)) s.enterPlay();
     else if (s.phase === 'play') {
       const elapsed = (now - s.playStartAt) / 1000;
       const last = s.pranks.at(-1);
@@ -265,6 +275,7 @@ export default function Experience() {
         <SnowGlobe />
       </group>
       <PostFX />
+      <FirstScreenMark />
     </Canvas>
   );
 }

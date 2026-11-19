@@ -34,6 +34,14 @@ const ALL_MODELS = [
       [3330, 2160, 140, 420], // shop name sign (well-known IP name)
       [2650, 3330, 230, 100], // "OUTEHO"
     ],
+    // Boxes [x0, y0, z0, x1, y1, z1] in the model's own space: every triangle centred inside one is
+    // dropped. Found by rendering the model alone and picking points on it (CLAUDE.md: IP).
+    crop: [
+      // The skeleton raising a top hat over the middle bay window (a famous joke shop's mascot).
+      [0.0147, 0.2549, 0.0245, 0.1028, 0.4507, 0.1957],
+      [0.0098, 0.4556, -0.0636, 0.093, 0.5975, 0.0489],
+      [0.0147, 0.4507, 0.0489, 0.1028, 0.5975, 0.1957],
+    ],
   },
   {
     name: 'shop_b',
@@ -53,27 +61,15 @@ const ALL_MODELS = [
       [2540, 3560, 140, 110],
       [3300, 3610, 120, 110],
     ],
-  },
-  {
-    name: 'tree',
-    triangles: 16_000,
-    error: 0.01,
-    baseSize: 1024,
-    emissive: true,
-    cover: [
-      [440, 120, 180, 230], // red/gold crest
-      [850, 90, 230, 200],
-      [500, 2080, 260, 170], // red/gold crest
-      [3400, 1610, 200, 260], // blue crest
-      [910, 1170, 170, 230],
-      [1850, 1380, 220, 170],
-      [2290, 940, 220, 200],
+    crop: [
+      [-0.1614, 0.8609, -0.1272, -0.0098, 0.9783, -0.0391], // owl weathervane on the chimney
+      [-0.1272, 0.4892, 0.1369, 0.0293, 0.6212, 0.2446], // winged golden ball over the door
     ],
   },
   // Distant versions of the shops, shown while the globe is seen from outside (each is a few dozen
   // pixels tall there): same source and covers, a fifth of the triangles, smaller textures.
-  { name: 'shop_a_far', src: 'shop_a', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_a' },
-  { name: 'shop_b_far', src: 'shop_b', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_b' },
+  { name: 'shop_a_far', src: 'shop_a', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_a', crop: 'shop_a' },
+  { name: 'shop_b_far', src: 'shop_b', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_b', crop: 'shop_b' },
   { name: 'street_lamp', triangles: 9_000, error: 0.01, baseSize: 1024, emissive: true, cover: [] },
   // Multi-part props: every part keeps its own node (the snowman's head and nose come off,
   // the tree's ornaments are its lights), every material is processed.
@@ -116,7 +112,10 @@ const ALL_MODELS = [
 ];
 
 // A string cover borrows another model's rectangles (same source atlas).
-for (const m of ALL_MODELS) if (typeof m.cover === 'string') m.cover = ALL_MODELS.find((o) => o.name === m.cover).cover;
+for (const m of ALL_MODELS) {
+  if (typeof m.cover === 'string') m.cover = ALL_MODELS.find((o) => o.name === m.cover).cover;
+  if (typeof m.crop === 'string') m.crop = ALL_MODELS.find((o) => o.name === m.crop).crop;
+}
 
 const MODELS = only.length ? ALL_MODELS.filter((m) => only.includes(m.name)) : ALL_MODELS;
 
@@ -163,6 +162,31 @@ async function emissiveFrom(buf, size) {
   return sharp(out, { raw: { width: info.width, height: info.height, channels: 3 } }).png().toBuffer();
 }
 
+/** Drop every triangle whose centre (in world space) lies inside one of the boxes. */
+function cropBoxes(doc, boxes) {
+  for (const node of doc.getRoot().listNodes()) {
+    const mesh = node.getMesh();
+    if (!mesh) continue;
+    const m = node.getWorldMatrix();
+    for (const prim of mesh.listPrimitives()) {
+      const pos = prim.getAttribute('POSITION');
+      const src = prim.getIndices().getArray();
+      const keep = [];
+      const v = [0, 0, 0];
+      for (let i = 0; i < src.length; i += 3) {
+        const c = [0, 0, 0];
+        for (let k = 0; k < 3; k++) {
+          pos.getElement(src[i + k], v);
+          for (let d = 0; d < 3; d++) c[d] += (m[d] * v[0] + m[4 + d] * v[1] + m[8 + d] * v[2] + m[12 + d]) / 3;
+        }
+        const inside = boxes.some((b) => c[0] >= b[0] && c[1] >= b[1] && c[2] >= b[2] && c[0] <= b[3] && c[1] <= b[4] && c[2] <= b[5]);
+        if (!inside) keep.push(src[i], src[i + 1], src[i + 2]);
+      }
+      prim.getIndices().setArray(new Uint32Array(keep));
+    }
+  }
+}
+
 function countTriangles(doc) {
   let n = 0;
   for (const mesh of doc.getRoot().listMeshes())
@@ -188,6 +212,8 @@ for (const m of MODELS) {
   // Tripo writes KHR_materials_volume (meant for glass) on opaque props; drop it.
   for (const ext of doc.getRoot().listExtensionsUsed())
     if (ext.extensionName === 'KHR_materials_volume') ext.dispose();
+
+  if (m.crop?.length) cropBoxes(doc, m.crop);
 
   const materials = doc.getRoot().listMaterials();
   for (const [mi, material] of materials.entries()) {

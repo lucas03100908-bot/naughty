@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { PLAY, VIDEO, VIEW } from './constants';
+import { PLAY, VIEW } from './constants';
 import { prankPoints, type PrankId } from './scoring';
 
 export type InputMode = 'none' | 'camera' | 'mouse';
@@ -98,7 +98,6 @@ interface AppState {
   pushEvent: (label: string) => void;
 
   begin: () => void;
-  fallbackDive: () => void;
   enterPlay: () => void;
   endPlay: () => void;
   setJudgeStage: (s: JudgeStage) => void;
@@ -132,22 +131,12 @@ export const useApp = create<AppState>((set, get) => ({
   pushEvent: (label) =>
     set((s) => ({ events: [{ id: ++eventId, t: now(), label }, ...s.events].slice(0, 8) })),
 
-  /** intro → start: Humbug's line, and the camera dives through the glass. */
-  /**
-   * intro → start: Humbug's line over the dive-in video. The camera jumps inside the globe once
-   * the video fully covers the screen; VideoTransition ends the start phase when the video does.
-   */
+  /** intro → start: Humbug's line, and the camera dives through the glass in real time. */
   begin: () => {
     if (get().phase !== 'intro') return;
     const t = now();
-    set({ phase: 'start', phaseAt: t, pranks: [], view: { from: live.viewBlend, to: 1, startAt: t + VIDEO.fadeInSec * 1000, durationSec: 0.05 } });
-    get().pushEvent('시작: 전환 영상');
-  },
-  /** The video couldn't play: fall back to the real-time 3D dive. */
-  fallbackDive: () => {
-    const t = now();
-    set({ view: { from: live.viewBlend, to: 1, startAt: t, durationSec: VIEW.diveSec } });
-    get().pushEvent('영상 없이 3D로 들어가기');
+    set({ phase: 'start', phaseAt: t, pranks: [], view: { from: live.viewBlend, to: 1, startAt: t, durationSec: VIEW.diveSec } });
+    get().pushEvent('시작: 유리 안으로');
   },
   enterPlay: () => {
     if (get().phase !== 'start') return;

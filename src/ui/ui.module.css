@@ -595,23 +595,6 @@
   }
 }
 
-/* ---------- dive-in video ---------- */
-.transition {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-  background: #000;
-  opacity: 0;
-  pointer-events: none;
-  transition-property: opacity;
-  transition-timing-function: ease;
-  z-index: 11;
-}
-.transitionIn {
-  opacity: 1;
-}
 .channels {
   margin-top: 10px;
   display: grid;

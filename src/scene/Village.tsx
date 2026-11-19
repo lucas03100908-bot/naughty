@@ -1,9 +1,10 @@
 'use client';
  
 import { useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
+import { Suspense, useRef } from 'react';
 import type * as THREE from 'three';
 import { LIGHTS, VIEW } from '@/src/game/constants';
+import { useFirstScreenLoaded } from '@/src/game/firstScreen';
 import { live } from '@/src/game/store';
 import { MODEL_URLS, useProp } from '@/src/props/useProp';
 import { StreetLamp } from '@/src/props/StreetLamp';
@@ -25,12 +26,15 @@ const FAR = { shopA: 'shopAFar', shopB: 'shopBFar' } as const;
 /**
  * A shop in two levels of detail. From outside each is a few dozen pixels tall behind the glass,
  * yet the full model costs its triangles three times a frame (main, glass refraction, shadow).
+ * The near model is fetched only once the first screen has loaded; until it arrives the far one
+ * stands in, even inside.
  */
 function Shop({ shop }: { shop: (typeof LAYOUT.shops)[number] }) {
   const near = useRef<THREE.Group>(null);
   const far = useRef<THREE.Group>(null);
+  const loadNear = useFirstScreenLoaded();
   useFrame(() => {
-    const close = live.viewBlend > VIEW.nearDetailFrom;
+    const close = live.viewBlend > VIEW.nearDetailFrom && (near.current?.children.length ?? 0) > 0;
     if (near.current) near.current.visible = close;
     if (far.current) far.current.visible = !close;
   });
@@ -38,7 +42,11 @@ function Shop({ shop }: { shop: (typeof LAYOUT.shops)[number] }) {
   return (
     <>
       <group ref={near}>
-        <Prop url={MODEL_URLS[shop.url]} emissive={LIGHTS.shopEmissive} at={shop} footprint={footprint} />
+        {loadNear && (
+          <Suspense fallback={null}>
+            <Prop url={MODEL_URLS[shop.url]} emissive={LIGHTS.shopEmissive} at={shop} footprint={footprint} />
+          </Suspense>
+        )}
       </group>
       <group ref={far}>
         <Prop url={MODEL_URLS[FAR[shop.url]]} emissive={LIGHTS.shopEmissive} at={shop} footprint={footprint} />

@@ -92,7 +92,7 @@ export const LAYOUT = {
   /** Snowman at the right edge of the street. */
   snowman: { position: [0.085, 0, 0.015], rotationY: -0.5, scale: 0.045 } as Placement,
 
-  /** Small snowy pines (tree.glb) tucked into the gaps between the houses. */
+  /** Small snowy pines (dio_pine.glb) tucked into the gaps between the houses. */
   cornerTrees: [
     { position: [-0.26, 0, -0.235], rotationY: 0.4, scale: 0.1 },
     { position: [0.0435, 0, -0.31], rotationY: 2.6, scale: 0.07 },
