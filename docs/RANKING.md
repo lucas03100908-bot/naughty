@@ -29,6 +29,9 @@ create policy "anyone can add a score" on public.scores
   for insert with check (true);
 
 create index scores_today on public.scores (created_at desc, score desc);
+
+-- 새 Supabase 프로젝트는 새 테이블에 anon 권한을 자동으로 주지 않는다.
+grant select, insert on public.scores to anon;
 ```
 
 수정·삭제 정책은 없으므로 브라우저에서는 점수를 바꾸거나 지울 수 없다. 점수 조작을 완전히 막지는 못한다(개인 작품 범위에서 감수). 얼굴이나 이미지는 저장하지 않는다.
