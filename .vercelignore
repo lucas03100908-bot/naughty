@@ -1,0 +1,7 @@
+# Source models and references (gigabytes, git-ignored): the site serves public/ only.
+/assets
+/.next
+/node_modules
+/.claude
+/docs
+skills-lock.json
