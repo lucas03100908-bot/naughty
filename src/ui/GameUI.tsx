@@ -48,7 +48,8 @@ export function Subtitle() {
   if (!line) return null;
   return (
     <p className={styles.subtitle} key={line}>
-      <span className={styles.speaker}>험벅</span> {line}
+      <span className={styles.speaker}>험벅</span>
+      <span className={styles.line}>{line}</span>
     </p>
   );
 }
