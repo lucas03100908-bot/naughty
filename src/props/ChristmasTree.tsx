@@ -8,9 +8,11 @@ import { useApp, live } from '@/src/game/store';
 import { groundLift } from '@/src/scene/groundSample';
 import { FOOTPRINT, type Placement } from '@/src/scene/layout';
 import { starHaloSprite } from '@/src/scene/proceduralTextures';
+import { useDetailUrl } from './detail';
 import { MODEL_URLS, useProp } from './useProp';
 import { usePrankTarget } from './usePrankCursor';
 import { sound } from '@/src/audio/sound';
+import { NEAR_LIGHT } from '@/src/scene/warmup';
 
 /** Glow of the ornaments and lights (emissive maps from the asset pipeline). */
 const LIGHTS_ON = 1.6;
@@ -34,7 +36,7 @@ interface StarRig {
  * off, it tumbles into the snow and the tree goes dark.
  */
 export function ChristmasTree({ at }: { at: Placement }) {
-  const tree = useProp(MODEL_URLS.christmasTree, LIGHTS_ON, false);
+  const tree = useProp(useDetailUrl(MODEL_URLS.christmasTree, MODEL_URLS.christmasTreeFar), LIGHTS_ON, false);
   const camera = useThree((s) => s.camera);
   const holder = useRef<THREE.Group>(null);
   const light = useRef<THREE.PointLight>(null);
@@ -193,7 +195,7 @@ export function ChristmasTree({ at }: { at: Placement }) {
         <primitive object={tree} />
         {star && <primitive object={star.pivot} {...handlers} />}
       </group>
-      <pointLight ref={light} position={[0, h * 0.45, 0.03]} color="#ffc480" intensity={0.008} distance={0.25} decay={2} />
+      <pointLight ref={light} userData={NEAR_LIGHT} position={[0, h * 0.45, 0.03]} color="#ffc480" intensity={0.008} distance={0.25} decay={2} />
       <mesh ref={ball} visible={false}>
         <sphereGeometry args={[0.009, 16, 12]} />
         <meshStandardMaterial color="#f6f8fc" roughness={0.9} />

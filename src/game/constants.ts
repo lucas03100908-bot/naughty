@@ -192,10 +192,12 @@ export const VIEW = {
    */
   insideEyeDepth: 0.22,
   /**
-   * Inside, head x/y motion is multiplied by this (on top of insideEyeDepth) so leaning actually
-   * lets you peek around things, e.g. behind the tree for the switch.
+   * Inside, the view turns with the head: radians per window unit of head offset (x → yaw,
+   * y → pitch). Must beat the window's own skew (about 1/eye depth ≈ 1.5) or the view still turns
+   * the wrong way; the margin above that is how far it follows.
    */
-  insidePeekGain: 2.5,
+  insideLookYaw: 2.8,
+  insideLookPitch: 2.2,
   /** Inside, the window tips down by this much (radians). Negative looks up: the tree's star has to be in view. */
   insidePitch: -0.26,
   diveSec: 2.6,

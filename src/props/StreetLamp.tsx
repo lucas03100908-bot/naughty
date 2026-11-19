@@ -7,10 +7,12 @@ import { LIGHTS, LOOK, PRANK, VIEW } from '@/src/game/constants';
 import { live, useApp } from '@/src/game/store';
 import { groundLift } from '@/src/scene/groundSample';
 import { FOOTPRINT, LAYOUT } from '@/src/scene/layout';
+import { useDetailUrl } from './detail';
 import { MODEL_URLS, useProp } from './useProp';
 import { usePrankTarget } from './usePrankCursor';
 import { starHaloSprite } from '@/src/scene/proceduralTextures';
 import { sound } from '@/src/audio/sound';
+import { NEAR_LIGHT } from '@/src/scene/warmup';
 
 type Vec3 = [number, number, number];
 
@@ -40,7 +42,7 @@ export function StreetLamp({
   /** Cast a shadow from the lamp (off: a point light's shadow is six extra renders of the village a frame, for a barely visible result). */
   shadows?: boolean;
 }) {
-  const object = useProp(MODEL_URLS.lamp, LIGHTS.lampEmissive, false);
+  const object = useProp(useDetailUrl(MODEL_URLS.lamp, MODEL_URLS.lampFar), LIGHTS.lampEmissive, false);
   const light = useRef<THREE.PointLight>(null);
   const state = useRef<{ mode: 'on' | 'flicker' | 'off'; since: number }>({ mode: 'on', since: 0 });
   const materials = useMemo(() => {
@@ -141,6 +143,7 @@ export function StreetLamp({
       {halo && <primitive object={halo} position={[0, scale * 0.85, 0]} />}
       <pointLight
         ref={light}
+        userData={NEAR_LIGHT}
         position={[0, scale * 0.85, 0]}
         color="#ffb867"
         intensity={LIGHTS.lampPointIntensity}

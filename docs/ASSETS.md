@@ -4,16 +4,22 @@
 
 `assets/source/`(git 제외)의 Tripo 모델을 `npm run assets`(`scripts/optimize-assets.mjs`)로 `public/models/`에 만든다.
 
-| 모델 | 원본 | 결과 | 삼각형 원본 | 삼각형 결과 |
-| --- | --- | --- | --- | --- |
-| shop_a | 65.30 MB | 1.75 MB | 1,940,285 | 99,996 |
-| shop_b | 60.82 MB | 1.47 MB | 1,882,915 | 100,000 |
-| tree | 66.11 MB | 0.87 MB | 1,944,140 | 50,000 |
-| street_lamp | 61.96 MB | 0.62 MB | 1,895,648 | 30,000 |
-| christmas_tree | 57.58 MB | 1.99 MB | 1,970,748 | 116,249 |
-| snowman | 56.18 MB | 0.97 MB | 1,878,797 | 55,740 |
-| ground | 64.94 MB | 1.01 MB | 1,930,446 | 60,000 |
-| **합계** | 432.90 MB | 8.69 MB | | |
+| 모델 | 결과 | 언제 받나 |
+| --- | --- | --- |
+| shop_a | 1.07 MB | 안에서만 |
+| shop_a_far | 0.44 MB | 첫 화면 |
+| shop_b | 0.79 MB | 안에서만 |
+| shop_b_far | 0.34 MB | 첫 화면 |
+| christmas_tree | 1.40 MB | 안에서만 |
+| christmas_tree_far | 0.66 MB | 첫 화면 |
+| snowman | 0.68 MB | 안에서만 |
+| snowman_far | 0.22 MB | 첫 화면 |
+| street_lamp | 0.42 MB | 안에서만 |
+| street_lamp_far | 0.09 MB | 첫 화면 |
+| ground | 0.93 MB | 안에서만 |
+| ground_far | 0.13 MB | 첫 화면 |
+
+마을 소품은 두 벌이다. `_far`(가벼운 판)는 첫 화면에서 받아 밖에서 보이고, 원본 판은 첫 화면이 다 뜬 뒤 받아(`src/props/detail.tsx`, 상점은 `Village.tsx`) 아무도 안 놀 때 바꿔 끼운다. 바꾼 뒤엔 셰이더와 텍스처를 미리 올려 둔다(`src/scene/warmup.tsx`). 디오라마 소품(`dio_*`)은 한 벌.
 
 부품이 여러 개인 모델은 노드를 합치지 않고, 재질마다 처리한다. `npm run assets -- snowman`처럼 이름을 주면 그 모델만 다시 만든다.
 

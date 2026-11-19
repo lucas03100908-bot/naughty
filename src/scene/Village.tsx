@@ -5,6 +5,7 @@ import { Suspense, useRef } from 'react';
 import type * as THREE from 'three';
 import { LIGHTS, VIEW } from '@/src/game/constants';
 import { useFirstScreenLoaded } from '@/src/game/firstScreen';
+import { WarmupOnMount } from './warmup';
 import { live } from '@/src/game/store';
 import { MODEL_URLS, useProp } from '@/src/props/useProp';
 import { StreetLamp } from '@/src/props/StreetLamp';
@@ -45,6 +46,7 @@ function Shop({ shop }: { shop: (typeof LAYOUT.shops)[number] }) {
         {loadNear && (
           <Suspense fallback={null}>
             <Prop url={MODEL_URLS[shop.url]} emissive={LIGHTS.shopEmissive} at={shop} footprint={footprint} />
+            <WarmupOnMount />
           </Suspense>
         )}
       </group>

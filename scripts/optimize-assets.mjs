@@ -71,6 +71,12 @@ const ALL_MODELS = [
   { name: 'shop_a_far', src: 'shop_a', triangles: 7_000, error: 0.02, baseSize: 1024, mapSize: 512, emissive: true, cover: 'shop_a', crop: 'shop_a' },
   { name: 'shop_b_far', src: 'shop_b', triangles: 7_000, error: 0.02, baseSize: 1024, mapSize: 512, emissive: true, cover: 'shop_b', crop: 'shop_b' },
   { name: 'street_lamp', triangles: 9_000, error: 0.01, baseSize: 1024, emissive: true, cover: [] },
+  // Light versions of the props inside the globe, drawn until the full ones arrive (detail.tsx).
+  // Same nodes (the pranks find parts by name), a quarter of the triangles, small textures.
+  { name: 'street_lamp_far', src: 'street_lamp', triangles: 2_500, error: 0.03, baseSize: 256, mapSize: 256, emissive: true, cover: [] },
+  { name: 'christmas_tree_far', src: 'christmas_tree', triangles: 15_000, error: 0.03, baseSize: 512, mapSize: 256, emissive: true, cover: [] },
+  { name: 'snowman_far', src: 'snowman', triangles: 6_000, error: 0.03, baseSize: 256, mapSize: 256, emissive: false, cover: [] },
+  { name: 'ground_far', src: 'ground', triangles: 8_000, error: 0.03, baseSize: 512, mapSize: 256, emissive: false, cover: [] },
   // Multi-part props: every part keeps its own node (the snowman's head and nose come off,
   // the tree's ornaments are its lights), every material is processed.
   // 116k triangles at the old error bound (its parts stopped simplifying early); half is plenty.

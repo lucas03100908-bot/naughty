@@ -2,6 +2,7 @@
 import { useGLTF } from '@react-three/drei';
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { useDetailUrl } from '@/src/props/detail';
 import { MODEL_URLS } from '@/src/props/useProp';
 import { LOOK } from '@/src/game/constants';
 import { GROUND } from './layout';
@@ -13,7 +14,7 @@ import { GROUND } from './layout';
  * GROUND placement × the mesh's transform inside the model. Independent of where the globe sits.
  */
 export function Ground() {
-  const { scene } = useGLTF(MODEL_URLS.ground);
+  const { scene } = useGLTF(useDetailUrl(MODEL_URLS.ground, MODEL_URLS.groundFar));
   const object = useMemo(() => {
     const clone = scene.clone(true);
     clone.userData.isGround = true; // the layout overlap check skips it

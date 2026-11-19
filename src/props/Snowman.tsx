@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { useApp } from '@/src/game/store';
 import { groundLift } from '@/src/scene/groundSample';
 import { FOOTPRINT, type Placement } from '@/src/scene/layout';
+import { useDetailUrl } from './detail';
 import { MODEL_URLS, useProp } from './useProp';
 import { usePrankTarget } from './usePrankCursor';
 import { sound } from '@/src/audio/sound';
@@ -42,7 +43,7 @@ interface Body {
  * carrot nose pops out on its own. Physics runs in the model's own units (≈1 tall).
  */
 export function Snowman({ at }: { at: Placement }) {
-  const model = useProp(MODEL_URLS.snowman, 0, false);
+  const model = useProp(useDetailUrl(MODEL_URLS.snowman, MODEL_URLS.snowmanFar), 0, false);
   // The scan's roughness/metal map and strong normals make the snow read as crumpled foil under
   // the moon: make it matte, packed snow.
   useMemo(() => {

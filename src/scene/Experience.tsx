@@ -2,9 +2,12 @@
 /* eslint-disable react-hooks/immutability -- three.js objects are mutated in useFrame by design (R3F). */
 import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { markSceneShown } from '@/src/game/firstScreen';
+import { FetchFullDetail } from '@/src/props/detail';
+import { MODEL_URLS } from '@/src/props/useProp';
+import { requestWarmup, Warmup } from './warmup';
 import { CAMERA, GLOBE, LOOK, PLAY, SCENE_TILT, VIEW } from '@/src/game/constants';
 import { live, useApp } from '@/src/game/store';
 import { applyOffAxis, eyeFromHeadCm, type ViewWindow } from '@/src/tracking/offAxisCamera';
@@ -38,6 +41,9 @@ function OffAxisRig() {
   const outside = useMemo<ViewWindow>(() => ({ center: new THREE.Vector3(), scale: 1, quaternion: new THREE.Quaternion() }), []);
   const inside = useMemo(() => insideWindow(), []);
   const win = useMemo<ViewWindow>(() => ({ center: new THREE.Vector3(), scale: 1, quaternion: new THREE.Quaternion() }), []);
+  const eyeWorld = useMemo(() => new THREE.Vector3(), []);
+  const turn = useMemo(() => new THREE.Quaternion(), []);
+  const look = useMemo(() => new THREE.Euler(), []);
   const frames = useRef({ n: 0, start: 0 });
   const scene = useThree((s) => s.scene);
   const gl = useThree((s) => s.gl);
@@ -114,10 +120,17 @@ function OffAxisRig() {
     eyeFromHeadCm(live.head, eye);
     // Pull the whole eye toward the window inside: wider field of view, same angular parallax.
     eye.multiplyScalar(THREE.MathUtils.lerp(1, VIEW.insideEyeDepth, blend));
-    // …but let sideways/vertical head motion travel further inside, so leaning can peek round things.
-    const peek = THREE.MathUtils.lerp(1, VIEW.insidePeekGain, blend);
-    eye.x *= peek;
-    eye.y *= peek;
+    // Inside, a window turns the view against the head (lean right, see more of the left). That is
+    // right for a screen, wrong for standing in the street: there, turning your head turns your
+    // view with it. So the window also turns about the eye, the same way as the head and further
+    // than the window's own skew, and the leftover parallax keeps the depth.
+    if (blend > 0) {
+      const s = win.scale;
+      eyeWorld.copy(eye).multiplyScalar(s).applyQuaternion(win.quaternion).add(win.center);
+      turn.setFromEuler(look.set(eye.y * VIEW.insideLookPitch * blend, -eye.x * VIEW.insideLookYaw * blend, 0, 'YXZ'));
+      win.quaternion.multiply(turn);
+      win.center.copy(eye).multiplyScalar(s).applyQuaternion(win.quaternion).negate().add(eyeWorld);
+    }
     applyOffAxis(camera, eye, win, size.width / size.height);
 
     const f = frames.current;
@@ -155,11 +168,18 @@ function SceneCapture() {
   return null;
 }
 
+/** The full props fetched after the first screen (detail.tsx); the shops load their own. */
+const FULL_DETAIL = [MODEL_URLS.christmasTree, MODEL_URLS.snowman, MODEL_URLS.lamp, MODEL_URLS.ground];
+
 /** Tells firstScreen.ts the scene is up: mounts only once everything the canvas suspends on has resolved. */
 function FirstScreenMark() {
   const frames = useRef(0);
   useFrame(() => {
-    if (++frames.current === 3) markSceneShown();
+    if (++frames.current === 3) {
+      // Behind the loading screen: build the inside view's shaders now, not at the glass.
+      requestWarmup();
+      markSceneShown();
+    }
   });
   return null;
 }
@@ -276,6 +296,10 @@ export default function Experience() {
       </group>
       <PostFX />
       <FirstScreenMark />
+      <Warmup />
+      <Suspense fallback={null}>
+        <FetchFullDetail urls={FULL_DETAIL} />
+      </Suspense>
     </Canvas>
   );
 }
