@@ -149,6 +149,40 @@ export function cobbleTextures() {
   return { map: tex(cc, [3, 3], true), bump: tex(hc, [3, 3], false) };
 }
 
+/** Warm glow with four soft rays, for the halo around the tree star. */
+export function starHaloSprite() {
+  const [c, ctx] = canvas(256);
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(255,240,200,0.95)');
+  g.addColorStop(0.18, 'rgba(255,205,110,0.55)');
+  g.addColorStop(0.5, 'rgba(255,170,60,0.14)');
+  g.addColorStop(1, 'rgba(255,150,40,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  // Rays: thin bright streaks that fade out along each axis and the diagonals (shorter).
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 8; i++) {
+    const long = i % 2 === 0;
+    ctx.save();
+    ctx.translate(128, 128);
+    ctx.rotate((i * Math.PI) / 4);
+    const len = long ? 124 : 70;
+    const ray = ctx.createLinearGradient(0, 0, len, 0);
+    ray.addColorStop(0, `rgba(255,236,190,${long ? 0.7 : 0.4})`);
+    ray.addColorStop(1, 'rgba(255,200,120,0)');
+    ctx.fillStyle = ray;
+    ctx.beginPath();
+    ctx.moveTo(0, -3);
+    ctx.lineTo(len, 0);
+    ctx.lineTo(0, 3);
+    ctx.fill();
+    ctx.restore();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 /** Soft round sprite for snowflakes. */
 export function flakeSprite() {
   const [c, ctx] = canvas(64);

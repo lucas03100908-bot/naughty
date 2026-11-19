@@ -6,8 +6,9 @@ import { useApp } from '@/src/game/store';
 /**
  * Pointer handlers for a prank target: hand cursor while hovering during play, and a click that
  * only counts during play. Clicks pass through the glass (the glass has no handlers).
+ * `onHover` hears hover start/end (during play only), so a target can react: giggle, glow, chime.
  */
-export function usePrankTarget(onPrank: () => void, enabled = true) {
+export function usePrankTarget(onPrank: () => void, enabled = true, onHover?: (on: boolean) => void) {
   const hovering = useRef(false);
   useEffect(
     () => () => {
@@ -20,6 +21,7 @@ export function usePrankTarget(onPrank: () => void, enabled = true) {
     onPointerOver: (e: ThreeEvent<PointerEvent>) => {
       if (!active()) return;
       e.stopPropagation();
+      if (!hovering.current) onHover?.(true);
       hovering.current = true;
       document.body.style.cursor = 'pointer';
     },
@@ -27,10 +29,12 @@ export function usePrankTarget(onPrank: () => void, enabled = true) {
       if (!hovering.current) return;
       hovering.current = false;
       document.body.style.cursor = '';
+      onHover?.(false);
     },
     onClick: (e: ThreeEvent<MouseEvent>) => {
       if (!active()) return;
       e.stopPropagation();
+      if (hovering.current) onHover?.(false);
       hovering.current = false;
       document.body.style.cursor = '';
       onPrank();

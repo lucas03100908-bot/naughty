@@ -1,13 +1,14 @@
 'use client';
 /* eslint-disable react-hooks/immutability -- three.js objects are mutated in useFrame by design (R3F). */
-import { Environment, Lightformer } from '@react-three/drei';
+import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { CAMERA, GLOBE, LOOK, PLAY, SCENE_TILT, VIDEO, VIEW } from '@/src/game/constants';
 import { live, useApp } from '@/src/game/store';
 import { applyOffAxis, eyeFromHeadCm, type ViewWindow } from '@/src/tracking/offAxisCamera';
 import { JudgeDirector } from './JudgeDirector';
+import { setSceneCapture } from './capture';
 import { KnitCloth } from './KnitCloth';
 import { PostFX } from './PostFX';
 import { SnowGlobe } from './SnowGlobe';
@@ -94,7 +95,7 @@ function OffAxisRig() {
       ctx.putImageData(img, 0, 0);
       return cv.toDataURL('image/png');
     };
-    Object.assign(window, { __scene: scene, __camera: camera, __THREE: THREE, __checkLayout: checkLayout, __topView: topView });
+    Object.assign(window, { __scene: scene, __camera: camera, __gl: gl, __THREE: THREE, __checkLayout: checkLayout, __topView: topView });
   }, [scene, camera, gl]);
 
   useFrame(() => {
@@ -127,6 +128,29 @@ function OffAxisRig() {
       f.start = now;
     }
   }, -1);
+  return null;
+}
+
+/** Registers a still-capture of the scene for the share image (no post-processing, no UI). */
+function SceneCapture() {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  useEffect(() => {
+    setSceneCapture(() => {
+      gl.render(scene, camera);
+      // Project the globe's top and the base's bottom so the share card can crop around it.
+      const tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), SCENE_TILT);
+      const toScreen = (y: number) => {
+        const p = new THREE.Vector3(0, y, 0).multiplyScalar(GLOBE.scale).add(new THREE.Vector3(...GLOBE.position)).applyQuaternion(tilt).project(camera);
+        return { x: (p.x + 1) / 2, y: (1 - p.y) / 2 };
+      };
+      const top = toScreen(GLOBE.centerY + GLOBE.radius);
+      const bottom = toScreen(0);
+      return { url: gl.domElement.toDataURL('image/jpeg', 0.9), globe: { cx: (top.x + bottom.x) / 2, top: top.y, bottom: bottom.y } };
+    });
+    return () => setSceneCapture(null);
+  }, [gl, scene, camera]);
   return null;
 }
 
@@ -181,18 +205,32 @@ function Lights() {
 }
 
 export default function Experience() {
+  // Pixel ratio ceiling: 1.5 on a retina screen is sharp enough under the film grain and costs
+  // half of 2. If frames keep dropping, step down to 1; if they recover, step back up.
+  const [dpr, setDpr] = useState<number>(LOOK.dprMax);
   return (
     <Canvas
-      dpr={[1, 2]}
+      dpr={[1, dpr]}
       shadows="soft"
       gl={{ antialias: false, powerPreference: 'high-performance' }}
+      onCreated={({ gl }) => {
+        // The glass's refraction is soft; render what's behind it at half resolution.
+        gl.transmissionResolutionScale = LOOK.transmissionScale;
+      }}
       camera={{ position: [0, 0, 3], near: CAMERA.near, far: CAMERA.far, manual: true } as never}
       style={{ position: 'fixed', inset: 0 }}
     >
+      <PerformanceMonitor
+        flipflops={3}
+        onDecline={() => setDpr(LOOK.dprMin)}
+        onIncline={() => setDpr(LOOK.dprMax)}
+        onFallback={() => setDpr(LOOK.dprMin)}
+      />
       <color attach="background" args={['#030305']} />
       <fog attach="fog" args={['#030305', 3.8, 8]} />
       <OffAxisRig />
       <Director />
+      <SceneCapture />
       <JudgeDirector />
       <Lights />
       {/* Generated environment (no HDR download): soft panels for reflections on the glass. */}

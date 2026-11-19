@@ -9,6 +9,9 @@
   z-index: 10;
 }
 .kicker {
+  font-family: var(--font-ko-display);
+  font-weight: 400;
+  font-style: normal;
   font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -109,6 +112,22 @@
   color: #aaa;
   font-size: 16px;
   cursor: pointer;
+}
+.muteToggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 30;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 12, 18, 0.55);
+  color: #d8d2c6;
+  font-size: 12px;
+  cursor: pointer;
+}
+.muteToggle[aria-pressed='true'] {
+  color: #7d776d;
 }
 .debugToggle {
   position: fixed;
@@ -212,6 +231,9 @@
 
 /* ---------- game ---------- */
 .subtitle {
+  font-family: var(--font-ko-display);
+  font-weight: 400;
+  font-style: normal;
   position: fixed;
   left: 50%;
   bottom: 9vh;
@@ -247,8 +269,8 @@
   gap: 24px;
   padding: 10px 18px;
   border-radius: 999px;
-  background: rgba(8, 9, 12, 0.55);
-  backdrop-filter: blur(8px);
+  /* No backdrop blur: over the live canvas it is recomputed every frame. */
+  background: rgba(8, 9, 12, 0.74);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #ece6da;
   z-index: 12;
@@ -318,7 +340,7 @@
 }
 .cardScore {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 40px;
+  font-size: 32px;
   margin: 4px 0 12px;
 }
 .records {
@@ -333,6 +355,17 @@
   justify-content: space-between;
   padding: 6px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #efe7d9;
+}
+.records li > span:first-child {
+  color: #a39c90;
+}
+.records li.missed > span {
+  color: #5f5a53;
+}
+.recTime {
+  color: #a39c90;
+  margin-right: 6px;
 }
 
 /* ---------- judge ---------- */
@@ -431,12 +464,14 @@
   margin-top: 14px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(8, 9, 12, 0.6);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 9, 12, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #ece6da;
 }
 .judgeStage {
+  font-family: var(--font-ko-display);
+  font-weight: 400;
+  font-style: normal;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -497,9 +532,11 @@
   padding: 4px 0;
 }
 .cardTitle {
-  font-family: 'olivia', Georgia, serif;
+  font-family: var(--font-ko-display);
+  font-weight: 400;
+  font-style: normal;
   color: #d2232a;
-  font-size: 24px;
+  font-size: 30px;
   letter-spacing: 0.06em;
   margin: 0 0 2px;
 }
@@ -565,4 +602,198 @@
   margin: 8px 0 0;
   font-size: 12px;
   color: #ff9c8a;
+}
+
+/* ---------- result ---------- */
+/* A column on the right: the receipt printer on top, the ranking desk under it. */
+.result {
+  position: fixed;
+  right: max(16px, 4vw);
+  top: 50%;
+  translate: 0 -50%;
+  width: min(34vw, 340px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #ece6da;
+  z-index: 12;
+  animation: resultIn 500ms ease both;
+}
+@keyframes resultIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.desk {
+  padding: 14px 16px 12px;
+  border-radius: 14px;
+  background: rgba(16, 13, 11, 0.93);
+  border: 1px solid rgba(231, 180, 106, 0.2);
+}
+.rankTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.rankHead {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e7b46a;
+}
+.rankGuess {
+  font-size: 11px;
+  color: #a39c90;
+  font-family: var(--font-receipt), ui-monospace, monospace;
+}
+.rankForm {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(233, 228, 218, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ece6da;
+  transition: border-color 160ms ease;
+}
+.input:focus {
+  outline: none;
+  border-color: rgba(231, 180, 106, 0.6);
+}
+.input::placeholder {
+  color: #7d776d;
+}
+.rankSubmit {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 0;
+  background: #e7b46a;
+  color: #1a1410;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rankSubmit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.rankList {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 13px;
+}
+.rankList li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 8px;
+}
+.rankList li + li {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.rankEmpty {
+  display: block !important;
+  color: #8d877d;
+  font-size: 12px;
+}
+.rankMine {
+  background: rgba(231, 180, 106, 0.14);
+}
+.rankPos {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-receipt), ui-monospace, monospace;
+  color: #a39c90;
+  background: rgba(255, 255, 255, 0.06);
+}
+.rankPos[data-pos='1'] {
+  background: #e7b46a;
+  color: #1a1410;
+}
+.rankPos[data-pos='2'] {
+  background: #c9c4bb;
+  color: #1a1410;
+}
+.rankPos[data-pos='3'] {
+  background: #b07a4a;
+  color: #1a1410;
+}
+.rankName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.rankScore {
+  font-family: var(--font-receipt), ui-monospace, monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f3ece0;
+}
+.resultActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.resultActions button {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.privacy {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #8d877d;
+  text-align: center;
+}
+@media (max-height: 820px) {
+  .result {
+    top: 16px;
+    translate: none;
+    gap: 8px;
+  }
+}
+@media (max-width: 720px) {
+  .result {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    translate: none;
+    transform: none;
+    animation: none;
+    max-height: 70vh;
+    overflow: auto;
+  }
+}
+
+/* Invisible, but rendered, so the dynamically subset Korean font fetches these glyphs. */
+.glyphPrimer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: var(--font-ko-display);
 }

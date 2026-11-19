@@ -7,8 +7,10 @@ import { PRANK } from '@/src/game/constants';
 import { useApp, live } from '@/src/game/store';
 import { groundLift } from '@/src/scene/groundSample';
 import { FOOTPRINT, type Placement } from '@/src/scene/layout';
+import { starHaloSprite } from '@/src/scene/proceduralTextures';
 import { MODEL_URLS, useProp } from './useProp';
 import { usePrankTarget } from './usePrankCursor';
+import { sound } from '@/src/audio/sound';
 
 /** Glow of the ornaments and lights (emissive maps from the asset pipeline). */
 const LIGHTS_ON = 1.6;
@@ -22,6 +24,8 @@ interface StarRig {
   rest: THREE.Vector3;
   radius: number;
   materials: THREE.MeshStandardMaterial[];
+  halo: THREE.Sprite;
+  light: THREE.PointLight;
 }
 
 /**
@@ -49,12 +53,16 @@ export function ChristmasTree({ at }: { at: Placement }) {
     const box = new THREE.Box3().setFromObject(node);
     const center = box.getCenter(new THREE.Vector3());
     const pivot = new THREE.Group();
+    // Bigger than the model's star, and lifted by the growth so it still sits on the treetop.
+    const radius0 = box.getSize(new THREE.Vector3()).y / 2;
+    center.y += radius0 * (PRANK.starScale - 1) * 0.8;
     pivot.position.copy(center);
     pivot.updateMatrixWorld(true);
     const m = node.matrixWorld.clone().premultiply(pivot.matrixWorld.clone().invert());
     node.removeFromParent();
     m.decompose(node.position, node.quaternion, node.scale);
     pivot.add(node);
+    pivot.scale.setScalar(PRANK.starScale);
     // A generous invisible hit target so the small star is easy to click.
     const hit = new THREE.Mesh(new THREE.SphereGeometry(box.getSize(new THREE.Vector3()).length() * 0.9, 12, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
     pivot.add(hit);
@@ -62,11 +70,23 @@ export function ChristmasTree({ at }: { at: Placement }) {
     node.traverse((o) => {
       const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
       if (mat) {
+        mat.color.set('#ffd77a');
         mat.emissive.set('#ffcc66');
+        mat.toneMapped = false; // stays bright gold instead of being tone-mapped toward white-grey
         materials.push(mat);
       }
     });
-    const rig: StarRig = { pivot, rest: center.clone(), radius: box.getSize(new THREE.Vector3()).y / 2, materials };
+    // A soft halo with rays that always faces the viewer, and a little light on the treetop.
+    const halo = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: starHaloSprite(), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }),
+    );
+    halo.scale.setScalar(radius0 * PRANK.starHaloSize);
+    halo.renderOrder = 4;
+    halo.raycast = () => {}; // clicks go to the hit sphere
+    pivot.add(halo);
+    const light = new THREE.PointLight('#ffc870', PRANK.starLight, 0.12, 2);
+    pivot.add(light);
+    const rig: StarRig = { pivot, rest: center.clone(), radius: radius0 * PRANK.starScale, materials, halo, light };
     tree.userData.starRig = rig;
     return rig;
   }, [tree]);
@@ -80,13 +100,23 @@ export function ChristmasTree({ at }: { at: Placement }) {
     return list;
   }, [tree]);
 
-  const handlers = usePrankTarget(() => {
-    if (!on.current || throwState.current || !holder.current || !star) return;
-    // Throw from just below the viewer's eye toward the star (both in the tree's local space).
-    const from = holder.current.worldToLocal(camera.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, -0.01, 0)));
-    const to = holder.current.worldToLocal(star.pivot.getWorldPosition(new THREE.Vector3()));
-    throwState.current = { from, to, startAt: performance.now() };
-  });
+  const hovered = useRef(false);
+  const handlers = usePrankTarget(
+    () => {
+      if (!on.current || throwState.current || !holder.current || !star) return;
+      // Throw from just below the viewer's eye toward the star (both in the tree's local space).
+      const from = holder.current.worldToLocal(camera.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, -0.01, 0)));
+      const to = holder.current.worldToLocal(star.pivot.getWorldPosition(new THREE.Vector3()));
+      throwState.current = { from, to, startAt: performance.now() };
+      sound.prankStart('tree');
+    },
+    true,
+    (h) => {
+      hovered.current = h;
+      if (h && on.current) sound.twinkle();
+    },
+  );
+  const swell = useRef(0);
 
   useFrame(({ clock }, rawDt) => {
     const dt = Math.min(rawDt, 1 / 30);
@@ -96,8 +126,22 @@ export function ChristmasTree({ at }: { at: Placement }) {
     if (light.current) light.current.intensity = 0.008 * k;
     // The star pulses while it is up there, so it reads as something to hit.
     if (star) {
-      const pulse = on.current ? PRANK.starGlow * (0.7 + 0.3 * Math.sin(clock.elapsedTime * 3.5)) * live.villageLight : 0;
+      // Under the cursor the star swells, beats faster and spins a little.
+      swell.current += ((hovered.current && on.current ? 1 : 0) - swell.current) * Math.min(1, dt * 8);
+      const beat = 0.5 + 0.5 * Math.sin(clock.elapsedTime * (3.5 + 4 * swell.current));
+      if (on.current && !fall.current) {
+        star.pivot.scale.setScalar(PRANK.starScale * (1 + 0.18 * swell.current));
+        star.pivot.rotation.y += dt * 2.5 * swell.current;
+      }
+      const pulse = on.current ? PRANK.starGlow * (0.65 + 0.35 * beat) * live.villageLight : 0;
       for (const m of star.materials) m.emissiveIntensity = pulse;
+      // Halo breathes with the pulse and turns slowly; once the star is hit it fades out.
+      const haloMat = star.halo.material;
+      const target = on.current ? (0.6 + 0.4 * beat) * (1 + 0.4 * swell.current) * live.villageLight : 0;
+      haloMat.opacity += (target - haloMat.opacity) * Math.min(1, dt * (on.current ? 6 : 3));
+      haloMat.rotation = clock.elapsedTime * 0.25;
+      star.halo.visible = haloMat.opacity > 0.01;
+      star.light.intensity = on.current ? PRANK.starLight * (0.7 + 0.3 * beat) * live.villageLight : 0;
     }
 
     // Snowball flight: straight line plus an arc, then the hit.

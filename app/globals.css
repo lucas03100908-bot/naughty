@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+/* Korean display face for titles and messages (Adobe Fonts kit in app/layout.tsx). */
+:root {
+  --font-ko-display: 'jjblackrose', 'Apple SD Gothic Neo', sans-serif;
+}
+
 html,
 body {
   margin: 0;

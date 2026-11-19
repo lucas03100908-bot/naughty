@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { GLOBE, LOOK } from '@/src/game/constants';
-import { live } from '@/src/game/store';
+import { live, useApp } from '@/src/game/store';
 
 /**
  * Light that lives inside the globe (globe-local, so its shadow frustum hugs the village however
@@ -15,12 +15,32 @@ export function GlobeLights() {
   const moon = useRef<THREE.DirectionalLight>(null);
   const target = useMemo(() => new THREE.Object3D(), []);
   const scene = useThree((s) => s.scene);
+  const gl = useThree((s) => s.gl);
+  const frame = useRef(0);
+  const hotUntil = useRef(0);
+
+  // The moon's shadow map is the biggest per-frame cost after the scene itself (every caster
+  // drawn again), and almost nothing in the village moves. Redraw it a few times a second, and
+  // every frame for a while after a prank, when the snowman falls apart or the star drops.
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+    const unsub = useApp.subscribe((s, prev) => {
+      if (s.pranks !== prev.pranks || s.phase !== prev.phase) hotUntil.current = performance.now() + LOOK.shadowHotSec * 1000;
+    });
+    return () => {
+      unsub();
+      gl.shadowMap.autoUpdate = true;
+    };
+  }, [gl]);
 
   useEffect(() => {
     if (moon.current) moon.current.target = target;
   }, [target]);
 
   useFrame(() => {
+    frame.current++;
+    if (performance.now() < hotUntil.current || frame.current % LOOK.shadowEveryFrames === 0) gl.shadowMap.needsUpdate = true;
     // Haze: world-scale fog outside, street-scale fog inside.
     const fog = scene.fog as THREE.Fog | null;
     if (fog) {

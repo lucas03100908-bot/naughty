@@ -27,6 +27,7 @@ export function createSnowSim() {
   const before = new Float32Array(N * N); // where lifted snow lands again
   let beforeSum = 1;
   const mask = new Uint8Array(N * N);
+  const insideMask = new Uint8Array(N * N); // inside the glass; mask = inside and not under a prop
   // Snow lies on the cobbled ground where there is ground (baked heights), on the floor elsewhere.
   const base = new Float32Array(N * N);
   const onGround = new Uint8Array(N * N);
@@ -38,12 +39,33 @@ export function createSnowSim() {
         onGround[k] = 1;
       }
     }
+  // Curbs and the street's edge are sharp steps the grid can't follow: one triangle would
+  // stretch from the street up to the curb top, a white smear seen from low in the village.
+  // Snow doesn't hold on a curb face anyway, so the sheet fades out across steps bigger than
+  // the cobbles' own bumps — unless the snow there is deep enough to bury the step.
+  const stepSize = new Float32Array(N * N);
+  const stepFade = new Float32Array(N * N);
+  for (let j = 0; j < N; j++)
+    for (let i = 0; i < N; i++) {
+      const k = j * N + i;
+      let step = 0;
+      for (let dj = -1; dj <= 1; dj++)
+        for (let di = -1; di <= 1; di++) {
+          const ni = i + di;
+          const nj = j + dj;
+          if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+          step = Math.max(step, Math.abs(base[nj * N + ni] - base[k]));
+        }
+      stepSize[k] = step;
+      stepFade[k] = THREE.MathUtils.smoothstep(step, SNOW.curbStep[0], SNOW.curbStep[1]);
+    }
   for (let j = 0; j < N; j++)
     for (let i = 0; i < N; i++) {
       const x = -Rf + (i + 0.5) * cell;
       const z = -Rf + (j + 0.5) * cell;
       const inside = Math.hypot(x, z) < Rf - cell * 0.6;
       mask[j * N + i] = inside ? 1 : 0;
+      insideMask[j * N + i] = mask[j * N + i];
       if (inside) h[j * N + i] = restingDepth(x, z, Rf) * (onGround[j * N + i] ? SNOW.onGroundShare : 1);
     }
 
@@ -62,11 +84,29 @@ export function createSnowSim() {
     return j * N + i;
   };
 
+  const surface = (k: number) => floorY + base[k] + 0.0012 + (mask[k] ? h[k] : 0);
   const writeField = () => {
     for (let k = 0; k < N * N; k++) {
-      const depth = mask[k] ? h[k] : 0;
-      fpos.setY(k, floorY + base[k] + 0.0012 + depth);
-      const a = mask[k] ? THREE.MathUtils.smoothstep(depth, 0.0015, 0.009) : 0;
+      let y = surface(k);
+      // Under a prop: no snow, but keep the (invisible) sheet at the neighbours' height, so the
+      // edge fades out level against the wall instead of dropping into a white cliff.
+      if (insideMask[k] && !mask[k]) {
+        const i = k % N;
+        const j = (k - i) / N;
+        let best = -Infinity;
+        for (let dj = -1; dj <= 1; dj++)
+          for (let di = -1; di <= 1; di++) {
+            const ni = i + di;
+            const nj = j + dj;
+            if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+            const q = nj * N + ni;
+            if (mask[q]) best = Math.max(best, surface(q));
+          }
+        if (best > -Infinity) y = best;
+      }
+      fpos.setY(k, y);
+      const buried = THREE.MathUtils.smoothstep(h[k], stepSize[k] * 2, stepSize[k] * 4);
+      const a = mask[k] ? THREE.MathUtils.smoothstep(h[k], 0.0015, 0.009) * (1 - stepFade[k] * (1 - buried)) : 0;
       fcol.setXYZW(k, 0.94, 0.96, 1.0, a);
     }
     fpos.needsUpdate = true;
@@ -250,8 +290,24 @@ export function createSnowSim() {
     }
   };
 
+  /**
+   * Cells a prop stands on (1 = blocked). Snow never lies there, so the sheet stops at walls and
+   * bases instead of rising through them; flakes landing there simply vanish.
+   */
+  const setBlocked = (blocked: Uint8Array) => {
+    for (let k = 0; k < N * N; k++) {
+      const m = insideMask[k] && !blocked[k] ? 1 : 0;
+      if (!m) h[k] = 0;
+      mask[k] = m;
+    }
+    writeField();
+  };
+
+  /** Cell index of a globe-local x/z, or -1 off the grid. */
+  const cellAt = cellIndex;
+
   const inspect = () => ({ h, mask, N, cell, Rf, pool });
-  return { fieldGeometry, flakeGeometry, step, shake, inspect };
+  return { fieldGeometry, flakeGeometry, step, shake, setBlocked, cellAt, inspect };
 }
 
 function relaxRepose(h: Float32Array, mask: Uint8Array, N: number, maxStep: number) {

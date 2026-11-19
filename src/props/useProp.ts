@@ -47,6 +47,7 @@ export const MODEL_URLS = {
   christmasTree: '/models/christmas_tree.glb',
   snowman: '/models/snowman.glb',
   ground: '/models/ground.glb',
+  pine: '/models/tree.glb',
 };
 
 Object.values(MODEL_URLS).forEach((u) => useGLTF.preload(u));

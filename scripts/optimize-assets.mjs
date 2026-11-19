@@ -23,7 +23,10 @@ const only = process.argv.slice(2); // optional: names to (re)build, e.g. `npm r
 const ALL_MODELS = [
   {
     name: 'shop_a',
-    triangles: 100_000,
+    // Eight houses stand in the globe and each is ~150px tall on screen: 100k was invisible
+    // detail drawn several times a frame (main pass, shadow map, glass).
+    triangles: 36_000,
+    error: 0.01,
     baseSize: 2048,
     emissive: true,
     cover: [
@@ -34,7 +37,8 @@ const ALL_MODELS = [
   },
   {
     name: 'shop_b',
-    triangles: 100_000,
+    triangles: 36_000,
+    error: 0.01,
     baseSize: 2048,
     emissive: true,
     cover: [
@@ -52,7 +56,8 @@ const ALL_MODELS = [
   },
   {
     name: 'tree',
-    triangles: 50_000,
+    triangles: 16_000,
+    error: 0.01,
     baseSize: 1024,
     emissive: true,
     cover: [
@@ -65,7 +70,7 @@ const ALL_MODELS = [
       [2290, 940, 220, 200],
     ],
   },
-  { name: 'street_lamp', triangles: 30_000, baseSize: 1024, emissive: true, cover: [] },
+  { name: 'street_lamp', triangles: 9_000, error: 0.01, baseSize: 1024, emissive: true, cover: [] },
   // Multi-part props: every part keeps its own node (the snowman's head and nose come off,
   // the tree's ornaments are its lights), every material is processed.
   { name: 'christmas_tree', triangles: 80_000, baseSize: 1024, emissive: true, cover: [] },
@@ -162,7 +167,7 @@ for (const m of MODELS) {
   const ratio = Math.min(1, m.triangles / before.tris);
   await doc.transform(
     weld(),
-    simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.002 }),
+    simplify({ simplifier: MeshoptSimplifier, ratio, error: m.error ?? 0.002 }),
     prune(),
     dedup(),
     textureCompress({ encoder: sharp, targetFormat: 'webp', slots: /^baseColor/, resize: [m.baseSize, m.baseSize], quality: 82 }),

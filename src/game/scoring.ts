@@ -8,6 +8,13 @@ export const PRANK_LABEL: Record<PrankId, string> = {
   tree: '트리 별',
 };
 
+/** The prank as a task, for records ("눈사람 무너뜨리기 · 9초"): result card and share image. */
+export const PRANK_TASK: Record<PrankId, string> = {
+  snowman: '눈사람 무너뜨리기',
+  lamp: '가로등 끄기',
+  tree: '트리 별 떨어뜨리기',
+};
+
 export const PRANK_VERB: Record<PrankId, string> = {
   snowman: '무너뜨림',
   lamp: '끔',

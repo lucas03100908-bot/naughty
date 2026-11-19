@@ -4,10 +4,14 @@ import { useEffect } from 'react';
 import { live, useApp } from '@/src/game/store';
 import { DebugPanel } from './DebugPanel';
 import { HUD, ResultCard, Subtitle } from './GameUI';
+import { GlyphPrimer } from './GlyphPrimer';
 import { JudgePanel } from './JudgePanel';
 import { VideoTransition } from './VideoTransition';
 import { SpiteFilter } from './spiteFilter';
+import { buildShareImage } from '@/src/game/share';
+import { captureScene } from '@/src/scene/capture';
 import { IntroOverlay } from './IntroOverlay';
+import { SoundDirector } from './SoundDirector';
 import { useInput } from './useInput';
 
 const Experience = dynamic(() => import('@/src/scene/Experience'), { ssr: false });
@@ -17,10 +21,11 @@ export function ClientRoot() {
   // Dev only: drive the head and the game from the console for layout checks.
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') return;
-    Object.assign(window, { __live: live, __app: useApp, __SpiteFilter: SpiteFilter });
+    Object.assign(window, { __live: live, __app: useApp, __SpiteFilter: SpiteFilter, __buildShareImage: buildShareImage, __captureScene: captureScene });
   }, []);
   return (
     <>
+      <GlyphPrimer />
       <Experience />
       <VideoTransition />
       <IntroOverlay onCamera={startCamera} onMouse={startMouse} />
@@ -28,6 +33,7 @@ export function ClientRoot() {
       <Subtitle />
       <JudgePanel video={video} />
       <ResultCard />
+      <SoundDirector />
       <DebugPanel video={video} />
     </>
   );

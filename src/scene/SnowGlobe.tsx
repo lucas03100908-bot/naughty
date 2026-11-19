@@ -6,8 +6,10 @@ import { Pranks } from './Pranks';
 import { VillageLightDriver } from './VillageLightDriver';
 import { Base } from './Base';
 import { Glass } from './Glass';
+import { Plaque } from './Plaque';
 import { GlobeLights } from './GlobeLights';
 import { Ground } from './Ground';
+import { InnerSky } from './InnerSky';
 import { Snow } from './Snow';
 import { Village } from './Village';
 
@@ -18,6 +20,7 @@ export function SnowGlobe() {
   return (
     <group position={GLOBE.position} scale={GLOBE.scale}>
       <Base />
+      <Plaque />
       <GlobeLights />
       <Suspense fallback={null}>
         <group name="village-floor" position-y={GLOBE.floorY} key={round}>
@@ -28,6 +31,7 @@ export function SnowGlobe() {
       </Suspense>
       <VillageLightDriver />
       <Snow />
+      <InnerSky />
       <Glass />
     </group>
   );

@@ -51,6 +51,7 @@ export const FOOTPRINT = {
   lamp: 0.2,
   christmasTree: 0.25,
   snowman: 0.25,
+  pine: 0.27,
 };
 
 export const LAYOUT = {
@@ -70,21 +71,30 @@ export const LAYOUT = {
     { url: 'shopB', position: [0.225, 0, -0.1], rotationY: -1.3, scale: 0.26, tint: '#bfd4ee' },
     { url: 'shopA', position: [0.2, 0, 0.106], rotationY: -1.6, scale: 0.24, tint: '#ffc9a6', mirror: true },
     // Back corners: smaller houses fill the gaps between the rows and the far end.
-    { url: 'shopB', position: [-0.17, 0, -0.25], rotationY: 0.75, scale: 0.13, tint: '#f0c9a8' },
-    { url: 'shopB', position: [0.24, 0, -0.22], rotationY: -0.85, scale: 0.12, tint: '#c7d9c0', mirror: true },
+    { url: 'shopB', position: [-0.175, 0, -0.245], rotationY: 0.75, scale: 0.15, tint: '#f0c9a8' },
+    { url: 'shopB', position: [0.245, 0, -0.232], rotationY: -0.85, scale: 0.13, tint: '#c7d9c0', mirror: true },
   ] as (Placement & { url: 'shopA' | 'shopB' })[],
 
   /** Extra height for the lamps on top of the street lift (their bases read as sunk otherwise). */
-  lampRaise: 0.012,
+  lampRaise: 0.003,
   /** Lamps along the street; the left one is the prank lamp. */
-  lampLeft: { position: [-0.085, 0, 0.03], rotationY: 0.2, scale: 0.105 } as Placement,
-  lampRight: { position: [0.12, 0, -0.16], rotationY: Math.PI - 0.4, scale: 0.105 } as Placement,
+  lampLeft: { position: [-0.085, 0, 0.03], rotationY: 0.2, scale: 0.12 } as Placement,
+  lampRight: { position: [0.12, 0, -0.16], rotationY: Math.PI - 0.4, scale: 0.12 } as Placement,
+  /** Smaller lamps further along the street, for depth (no shadows, softer light). */
+  lampsSmall: [
+    { position: [-0.1, 0, -0.06], rotationY: 0.5, scale: 0.085 },
+    { position: [0.135, 0, -0.06], rotationY: Math.PI - 0.3, scale: 0.085 },
+    { position: [0.05, 0, -0.215], rotationY: 0.2, scale: 0.075 },
+  ] as Placement[],
 
   /** The village tree where the street widens at the back; its star is the prank target. */
-  villageTree: { position: [0, 0, -0.098], rotationY: 0, scale: 0.33 } as Placement,
+  villageTree: { position: [0, 0, -0.098], rotationY: 0, scale: 0.29 } as Placement,
   /** Snowman at the right edge of the street. */
   snowman: { position: [0.085, 0, 0.015], rotationY: -0.5, scale: 0.045 } as Placement,
 
-  /** Small trees tucked into gaps (none fit at the moment without crowding the back). */
-  cornerTrees: [] as Placement[],
+  /** Small snowy pines (tree.glb) tucked into the gaps between the houses. */
+  cornerTrees: [
+    { position: [-0.26, 0, -0.235], rotationY: 0.4, scale: 0.1 },
+    { position: [0.0435, 0, -0.31], rotationY: 2.6, scale: 0.07 },
+  ] as Placement[],
 };

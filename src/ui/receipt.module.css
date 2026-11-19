@@ -1,0 +1,366 @@
+/* ---------- printer ---------- */
+.card {
+  position: relative;
+  /* In front of the ranking desk, so a torn sheet drops over it, not behind. */
+  z-index: 2;
+  width: 100%;
+  user-select: none;
+}
+.printer {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 58px;
+  border-radius: 16px 16px 10px 10px;
+  background: linear-gradient(#211c18, #15110e);
+  border: 1px solid rgba(231, 180, 106, 0.28);
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 240, 210, 0.08);
+  z-index: 2;
+}
+.printerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e7b46a;
+  font-weight: 700;
+  font-family: var(--font-receipt), ui-monospace, monospace;
+}
+.led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4cc17a;
+  box-shadow: 0 0 8px #4cc17a;
+}
+.ledBusy {
+  background: #ff8a3d;
+  box-shadow: 0 0 8px #ff8a3d;
+  animation: blink 0.35s steps(2) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+.status {
+  color: #a39c90;
+  letter-spacing: 0.02em;
+}
+.slot {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: #050403;
+  box-shadow: inset 0 1px 2px #000;
+}
+
+/* ---------- paper ---------- */
+.paperZone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.paper {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: calc(100% - 36px);
+  margin-left: calc(-50% + 18px);
+  transform-origin: 0 0;
+  touch-action: none;
+  outline: none;
+  /* A shadow that follows the torn edge (the sheet below is masked). */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18)) drop-shadow(0 12px 14px rgba(0, 0, 0, 0.35));
+}
+/* Thermal paper: warm off-white, a fine grain, faint fibres, the edges a touch darker where
+   the roll curls, and light sliding across the bend while it flaps (--bend, -1..1). */
+.sheet {
+  --bend: 0;
+  position: relative;
+  transform-origin: 50% 0;
+  background-color: #f4efe3;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .22 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .2' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .43 0 0 0 0 .32 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+    linear-gradient(90deg, rgba(110, 90, 60, 0.1), transparent 9%, transparent 91%, rgba(110, 90, 60, 0.1));
+  background-size: 160px 160px, 300px 300px, 100% 100%;
+  color: #2a2420;
+}
+.sheet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 252, 244, calc(0.28 * max(var(--bend), 0))) 0%,
+    rgba(70, 55, 35, calc(0.16 * max(-1 * var(--bend), 0))) 45%,
+    rgba(255, 252, 244, calc(0.2 * max(-1 * var(--bend), 0))) 70%,
+    rgba(70, 55, 35, calc(0.18 * max(var(--bend), 0))) 100%
+  );
+}
+/* Thermal print bleeds a hair into the paper. */
+.sheet .receipt {
+  text-shadow: 0 0 0.4px rgba(42, 36, 32, 0.55);
+}
+/* Hanging from the slot, it stirs a little, as if in a draught. */
+.breeze {
+  animation: breeze 3.6s ease-in-out infinite;
+}
+@keyframes breeze {
+  0%,
+  100% {
+    transform: perspective(900px) rotateX(0deg) skewX(0deg);
+  }
+  35% {
+    transform: perspective(900px) rotateX(3.5deg) skewX(-0.4deg);
+  }
+  70% {
+    transform: perspective(900px) rotateX(-1.5deg) skewX(0.3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .breeze {
+    animation: none;
+  }
+}
+.grab {
+  cursor: grab;
+}
+.grab:active,
+.grabbing {
+  cursor: grabbing;
+}
+.gone {
+  visibility: hidden;
+}
+.perforation {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  border-top: 2px dotted rgba(42, 36, 32, 0.25);
+}
+.srTear {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.srTear:focus {
+  width: auto;
+  height: auto;
+  clip: auto;
+  right: 12px;
+  bottom: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f1e6d2;
+  color: #1a1410;
+  border: 0;
+  font-size: 12px;
+}
+.again {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58px;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.againButton {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px dashed rgba(231, 180, 106, 0.5);
+  background: rgba(20, 16, 12, 0.6);
+  color: #e7b46a;
+  cursor: pointer;
+}
+
+/* ---------- what is printed on it ---------- */
+.receipt {
+  padding: 20px 18px 22px;
+  font-family: var(--font-receipt), ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 18px;
+  text-align: left;
+}
+.head {
+  text-align: center;
+}
+.logo {
+  margin: 0;
+  font-family: 'olivia', Georgia, serif;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #a51d36;
+}
+.meta {
+  margin: 6px 0 0;
+  color: #8a8178;
+  font-size: 11px;
+  line-height: 15px;
+}
+.rule {
+  margin: 10px 0;
+  border: 0;
+  border-top: 1.5px dashed rgba(42, 36, 32, 0.3);
+}
+.verdict {
+  text-align: center;
+}
+.verdictLabel {
+  margin: 0;
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  color: #8a8178;
+}
+.title {
+  margin: 4px 0 0;
+  font-family: var(--font-ko-display);
+  font-size: 30px;
+  line-height: 1.15;
+  color: #a51d36;
+}
+.stamp {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border: 1.5px solid #a51d36;
+  border-radius: 4px;
+  color: #a51d36;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  transform: rotate(-4deg);
+  opacity: 0.85;
+}
+.lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.line {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: baseline;
+}
+.lineName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.lineNote {
+  color: #8a8178;
+  font-size: 11px;
+}
+.linePts {
+  min-width: 52px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.missed {
+  color: #b0a89c;
+}
+.missed .linePts {
+  font-weight: 400;
+}
+.sub {
+  display: flex;
+  justify-content: space-between;
+  color: #6d655c;
+  font-variant-numeric: tabular-nums;
+}
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 2px solid #2a2420;
+}
+.totalLabel {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+}
+.totalValue {
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.barcode {
+  display: flex;
+  justify-content: center;
+  gap: 1px;
+  height: 30px;
+  margin-top: 14px;
+}
+.barcode span:nth-child(odd) {
+  background: #2a2420;
+}
+.footer {
+  margin: 10px 0 0;
+  text-align: center;
+  color: #6d655c;
+  font-size: 11px;
+  line-height: 16px;
+}
+.footer strong {
+  color: #2a2420;
+}
+
+/* Short laptop screens: the same receipt, printed tighter, so the printer, the sheet and the
+   ranking desk all fit in one column without scrolling. */
+@media (max-height: 820px) {
+  .receipt {
+    padding: 14px 16px 14px;
+  }
+  .rule {
+    margin: 6px 0;
+  }
+  .title {
+    font-size: 26px;
+  }
+  .stamp {
+    margin-top: 5px;
+  }
+  .total {
+    margin-top: 4px;
+    padding-top: 6px;
+  }
+  .barcode {
+    height: 18px;
+    margin-top: 10px;
+  }
+  .footer {
+    margin-top: 6px;
+  }
+}
+@media (max-height: 700px) {
+  .barcode,
+  .meta {
+    display: none;
+  }
+}

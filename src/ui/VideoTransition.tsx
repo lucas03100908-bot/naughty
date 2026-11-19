@@ -54,6 +54,8 @@ export function VideoTransition() {
     v.addEventListener('error', fallback);
     timers.push(window.setTimeout(finish, VIDEO.maxSec * 1000 - VIDEO.fadeOutSec * 1000));
     return () => {
+      // Leaving `start` any other way (restart, debug jumps) must not leave the video on screen.
+      v.pause();
       v.removeEventListener('timeupdate', onTime);
       v.removeEventListener('ended', finish);
       v.removeEventListener('error', fallback);
@@ -64,7 +66,7 @@ export function VideoTransition() {
   return (
     <video
       ref={video}
-      className={`${styles.transition} ${state === 'in' ? styles.transitionIn : ''}`}
+      className={`${styles.transition} ${state === 'in' && phase === 'start' ? styles.transitionIn : ''}`}
       style={{ transitionDuration: `${(state === 'out' ? VIDEO.fadeOutSec : VIDEO.fadeInSec) * 1000}ms` }}
       src={VIDEO.src}
       preload="auto"

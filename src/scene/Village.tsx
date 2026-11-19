@@ -24,9 +24,12 @@ export function Village() {
 
       <StreetLamp position={LAYOUT.lampLeft.position} rotationY={LAYOUT.lampLeft.rotationY} scale={LAYOUT.lampLeft.scale} prank />
       <StreetLamp position={LAYOUT.lampRight.position} rotationY={LAYOUT.lampRight.rotationY} scale={LAYOUT.lampRight.scale} />
+      {LAYOUT.lampsSmall.map((l, i) => (
+        <StreetLamp key={i} position={l.position} rotationY={l.rotationY} scale={l.scale} shadows={false} />
+      ))}
 
       {LAYOUT.cornerTrees.map((t, i) => (
-        <Prop key={i} url={MODEL_URLS.christmasTree} emissive={LIGHTS.treeEmissive} at={t} footprint={FOOTPRINT.christmasTree} />
+        <Prop key={i} url={MODEL_URLS.pine} emissive={0} at={t} footprint={FOOTPRINT.pine} />
       ))}
     </group>
   );

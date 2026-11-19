@@ -111,8 +111,11 @@ export const SNOW = {
   initialDepth: 0.03,
   /** Extra depth drifted up against the glass at the floor's edge. */
   edgeBank: 0.022,
-  /** On the cobbled street the snow layer is this share of the normal depth (cobbles show through). */
-  onGroundShare: 0.15,
+  /**
+   * On the cobbled street the snow layer is this share of the normal depth: patchy, so the
+   * cobbles show through in places but do not dominate (they are large for the miniature).
+   */
+  onGroundShare: 0.19,
   /** Cells never grow above this. */
   maxDepth: 0.09,
   /** Heightfield cells the snow layer travels per second at full roll (64 cells = floor width). */
@@ -128,6 +131,11 @@ export const SNOW = {
   /** After the stir dies down, lifted snow settles back over this many seconds. */
   returnSec: 5,
   flakeSize: 0.016,
+  /** Largest a flake may be drawn, pixels (one passing right by the eye is otherwise a big blur). */
+  maxFlakePx: 14,
+  /** Ground height step (globe units) across which the floor snow fades out: cobbles bump about
+   *  0.002, curbs step 0.007–0.015. */
+  curbStep: [0.0045, 0.0085] as const,
 };
 
 export const LIGHTS = {
@@ -193,8 +201,22 @@ export const PRANK = {
   lampFlickerSec: 0.9,
   /** Snowball flight time to the tree star, seconds. */
   snowballSec: 0.45,
-  /** Pulsing glow of the star while it waits to be hit (above the bloom threshold). */
-  starGlow: 2.2,
+  /** Pulsing glow of the star while it waits to be hit (well above the bloom threshold). */
+  starGlow: 3.2,
+  /** The star is scaled up from the model so it reads as the thing to hit. */
+  starScale: 2.2,
+  /** Halo sprite around the star, in star radii. */
+  starHaloSize: 6,
+  /** Small warm light from the star onto the treetop (world intensity). */
+  starLight: 0.006,
+  /** The prank lamp glows this much more than the other lamps (and ×1.5 under the cursor). */
+  lampBoost: 1.6,
+  /** Halo round the prank lamp's lantern, in lamp heights. */
+  lampHaloSize: 0.75,
+  /** The prank lamp stutters once every this many seconds, as a tease. */
+  lampTeaseSec: 4.5,
+  /** The snowman fidgets once every this many seconds while it waits. */
+  snowmanFidgetSec: 3.2,
 };
 
 /** 심술 심사: baseline, then the spite grin. See docs/TUNING.md. */
@@ -279,7 +301,16 @@ export const LOOK = {
   moonPosition: [-0.6, 0.42, 0.3] as [number, number, number],
   /** Street lamps also cast (small cube shadow maps), for shadows inside their warm pools. */
   lampShadowMapSize: 256,
+  /** Canvas pixel ratio: the ceiling, and where it drops to when frames can't keep up. */
+  dprMax: 1.5,
+  dprMin: 1,
+  /** Resolution of the scene seen through the glass, relative to the canvas. */
+  transmissionScale: 0.5,
   shadowMapSize: 2048,
+  /** Redraw the moon's shadow map every this many frames while nothing is happening… */
+  shadowEveryFrames: 6,
+  /** …and every frame for this long after a prank or a phase change. */
+  shadowHotSec: 4,
   /** Fog [near, far] in world units: outside (the whole globe in view) and inside (street scale). */
   fogOutside: [3.8, 8] as [number, number],
   fogInside: [0.12, 0.75] as [number, number],
@@ -290,4 +321,16 @@ export const LOOK = {
   groundTint: '#8f96a6',
   aoRadius: 0.03,
   aoIntensity: 2.2,
+};
+
+/** Brass plate on the front of the base (globe-local; y in the base's 0.32-tall design units). */
+export const PLAQUE = {
+  radius: 0.403,
+  height: 0.075,
+  /** Arc of the band around the base, radians. */
+  arc: 1.15,
+  /** Centre height on the base's waist (before the base is scaled to the floor height). */
+  y: 0.148,
+  /** Time to engrave the result, left to right. */
+  engraveSec: 1.6,
 };

@@ -37,7 +37,8 @@ export function DebugPanel({ video }: { video: HTMLVideoElement | null }) {
     };
   }, [video, open]);
 
-  if (!open) return <button className={styles.debugToggle} onClick={toggle}>디버그 (D)</button>;
+  // Viewers never see the button; the D key still opens the panel.
+  if (!open) return process.env.NODE_ENV === 'production' ? null : <button className={styles.debugToggle} onClick={toggle}>디버그 (D)</button>;
 
   const b = live.blend;
 
