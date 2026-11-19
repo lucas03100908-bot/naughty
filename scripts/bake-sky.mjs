@@ -5,7 +5,7 @@
 //   node scripts/bake-sky.mjs [--preview]
 //
 // In:  assets/source/hdri/moonless_golf_2k.hdr (2048×1024, RLE RGBE): a moonless starry night
-// Out: public/hdri/sky.hdr (RLE RGBE, full resolution so the stars stay sharp), and the horizon's
+// Out: public/hdri/sky.hdr (RLE RGBE, 1024 wide: the tilt-shift softens the sky anyway), and the horizon's
 //      colour for the fog (printed, to copy into LOOK.fogColor)
 import fs from 'node:fs';
 import sharp from 'sharp';
@@ -29,8 +29,8 @@ const GLOW_DEG = 6;
 const STAR_BOOST = 3;
 /** Overall gain, so LOOK.skyIntensity ≈ 1 shows the sky as a night sky. */
 const GAIN = 1.6;
-const W = 2048;
-const H = 1024;
+const W = 1024;
+const H = 512;
 
 function readHdr(file) {
   const buf = fs.readFileSync(file);

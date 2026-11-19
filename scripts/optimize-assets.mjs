@@ -70,11 +70,15 @@ const ALL_MODELS = [
       [2290, 940, 220, 200],
     ],
   },
+  // Distant versions of the shops, shown while the globe is seen from outside (each is a few dozen
+  // pixels tall there): same source and covers, a fifth of the triangles, smaller textures.
+  { name: 'shop_a_far', src: 'shop_a', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_a' },
+  { name: 'shop_b_far', src: 'shop_b', triangles: 7_000, error: 0.02, baseSize: 1024, emissive: true, cover: 'shop_b' },
   { name: 'street_lamp', triangles: 9_000, error: 0.01, baseSize: 1024, emissive: true, cover: [] },
   // Multi-part props: every part keeps its own node (the snowman's head and nose come off,
   // the tree's ornaments are its lights), every material is processed.
   { name: 'christmas_tree', triangles: 80_000, baseSize: 1024, emissive: true, cover: [] },
-  { name: 'snowman', triangles: 50_000, baseSize: 1024, emissive: false, cover: [] },
+  { name: 'snowman', triangles: 20_000, baseSize: 1024, emissive: false, cover: [] },
   // Snowy cobbled street with curbs: the village ground.
   { name: 'ground', triangles: 60_000, baseSize: 2048, emissive: false, cover: [] },
   // The ski diorama outside the globe (split from multi-part sheets by split-diorama.mjs). Seen
@@ -110,6 +114,9 @@ const ALL_MODELS = [
     ['dio_bridge', 2_000, 512, false],
   ].map(([name, triangles, baseSize, emissive, error = 0.02]) => ({ name, triangles, baseSize, emissive, error, cover: [] })),
 ];
+
+// A string cover borrows another model's rectangles (same source atlas).
+for (const m of ALL_MODELS) if (typeof m.cover === 'string') m.cover = ALL_MODELS.find((o) => o.name === m.cover).cover;
 
 const MODELS = only.length ? ALL_MODELS.filter((m) => only.includes(m.name)) : ALL_MODELS;
 
@@ -174,7 +181,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const rows = [];
 
 for (const m of MODELS) {
-  const srcPath = path.join(SRC, `${m.name}.glb`);
+  const srcPath = path.join(SRC, `${m.src ?? m.name}.glb`);
   const doc = await io.read(srcPath);
   const before = { size: fs.statSync(srcPath).size, tris: countTriangles(doc) };
 

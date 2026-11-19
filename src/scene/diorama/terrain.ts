@@ -52,7 +52,7 @@ const smooth = THREE.MathUtils.smoothstep;
  * The snowfield in front of the range: drifts and rocky mounds baked from a Tripo terrain tile
  * (scripts/bake-snowfield.mjs), laid over the table in front of the globe.
  */
-export const FIELD = { cx: 0, cz: -0.25, width: 2.9, relief: 0.55 };
+const FIELD = { cx: 0, cz: -0.25, width: 2.9, relief: 0.55 };
 const FIELD_DEPTH = (FIELD.width * SNOWFIELD.depth) / SNOWFIELD.width;
 const FIELD_SCALE = FIELD.width / SNOWFIELD.width;
 const fieldGrid = (() => {
@@ -100,8 +100,9 @@ function padMask(x: number, z: number) {
 }
 
 /**
- * Height of the snow at (x, z). Flat under the globe and along the train's track bed; soft drifts
- * elsewhere; the mountains are piped like whipped cream (a spiral groove around each peak).
+ * Height of the snow at (x, z). Flat under the globe and along the train's track bed; the baked
+ * snowfield's drifts and mounds in front, levelled under props and tunnels; soft mountains either
+ * side, swirled a little like whipped cream; a berm hiding the range's cut edge behind.
  */
 export function groundHeight(x: number, z: number) {
   const r = Math.hypot(x, z);

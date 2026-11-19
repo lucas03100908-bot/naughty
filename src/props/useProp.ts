@@ -43,6 +43,8 @@ export function useProp(url: string, emissiveIntensity: number, joinVillageLight
 export const MODEL_URLS = {
   shopA: '/models/shop_a.glb',
   shopB: '/models/shop_b.glb',
+  shopAFar: '/models/shop_a_far.glb',
+  shopBFar: '/models/shop_b_far.glb',
   lamp: '/models/street_lamp.glb',
   christmasTree: '/models/christmas_tree.glb',
   snowman: '/models/snowman.glb',

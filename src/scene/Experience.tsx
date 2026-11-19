@@ -194,21 +194,23 @@ function Lights() {
   const hemi = useRef<THREE.HemisphereLight>(null);
   const fill = useRef<THREE.DirectionalLight>(null);
   const key = useRef<THREE.SpotLight>(null);
+  const moon = useRef<THREE.DirectionalLight>(null);
   // Inside the globe the studio lights fade down: night street, lit by moon, lamps and windows.
   useFrame(() => {
     const k = THREE.MathUtils.lerp(1, LOOK.insideAmbient, live.viewBlend);
     if (hemi.current) hemi.current.intensity = 0.6 * k;
     if (fill.current) fill.current.intensity = 0.9 * k;
     if (key.current) key.current.intensity = 9 * k;
+    if (moon.current) moon.current.intensity = 0.6 * k;
   });
   return (
     <>
       <primitive object={target} />
-      <hemisphereLight ref={hemi} args={['#5a6a8c', '#0c0b0c', 0.6]} />
+      <hemisphereLight ref={hemi} args={['#4f5f86', '#0c0b0c', 0.6]} />
       {/* Broad, low warm fill from the viewer's side so the knit and the wood read. */}
       <directionalLight ref={fill} position={[0.6, 1.2, 2.5]} intensity={0.9} color="#ffe2c4" />
-      {/* Moonlight from upper left behind. */}
-      <directionalLight position={[-1.5, 2.5, -1]} intensity={0.35} color="#b9c8ff" />
+      {/* Moonlight from upper left behind: rims the ridges and the snow's crests in cool blue. */}
+      <directionalLight ref={moon} position={[-1.8, 2.2, -2.2]} intensity={0.6} color="#a9bcff" />
       {/* Soft key from the front, gives the glass its highlight and the knit its texture. */}
       <spotLight ref={key} position={[0.9, 1.6, 1.4]} target={target} angle={0.55} penumbra={1} intensity={9} color="#fff1df" decay={2} distance={6} />
       {/* Rim from behind to separate the globe from the dark. */}

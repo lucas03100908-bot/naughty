@@ -174,6 +174,13 @@ export const LIGHTS = {
  * lane, level with the globe, small enough that the viewer's eye stays inside the glass.
  */
 export const VIEW = {
+  /**
+   * viewBlend past which the village is drawn in full: the full shop models and the lamps' point
+   * lights. Below it (globe seen from outside, the village a small model behind glass) the shops
+   * use their distant models and the windows' own glow stands in for the lamps' light, which
+   * would otherwise cost every material in the scene. The dive video covers the swap going in.
+   */
+  nearDetailFrom: 0.3,
   /** Window centre inside, globe-local units (y measured from the floor). At the lane's mouth. */
   insideCenter: [0, 0.07, 0.1] as [number, number, number],
   /** Window height inside, world units. Smaller = the village feels bigger. */
@@ -341,11 +348,15 @@ export const LOOK = {
    * the globe (screen height, 0 = bottom), blur growing above and below it. Off inside the globe.
    */
   tiltFocusY: 0.41,
-  tiltTaper: 0.36,
-  tiltBlur: 0.1,
+  tiltTaper: 0.33,
+  tiltBlur: 0.12,
   /** The miniature grade from outside: a little more saturation and contrast (0 = none). */
-  miniSaturation: 0.16,
-  miniContrast: 0.08,
+  miniSaturation: 0.22,
+  miniContrast: 0.1,
+  /** Film grade (CinemaGrade: split tone, soft shoulder, halation), 0..1. */
+  gradeStrength: 1,
+  /** Chromatic aberration toward the frame's corners, in screen UV. */
+  lensFringe: 0.0012,
   /** The HDRI night sky: how bright behind the diorama, turned so its horizon glow sits behind the range. */
   skyIntensity: 0.45,
   skyRotation: 1.38,

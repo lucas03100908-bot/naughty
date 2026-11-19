@@ -3,7 +3,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { LIGHTS, LOOK, PRANK } from '@/src/game/constants';
+import { LIGHTS, LOOK, PRANK, VIEW } from '@/src/game/constants';
 import { live, useApp } from '@/src/game/store';
 import { groundLift } from '@/src/scene/groundSample';
 import { FOOTPRINT, LAYOUT } from '@/src/scene/layout';
@@ -126,7 +126,10 @@ export function StreetLamp({
       m.emissiveIntensity = LIGHTS.lampEmissive * k * boost.current;
       m.color.lerpColors(offColor, onColor, Math.max(k, 0));
     }
-    if (light.current) light.current.intensity = LIGHTS.lampPointIntensity * (scale / LAYOUT.lampLeft.scale) * k * boost.current;
+    if (light.current) {
+      light.current.intensity = LIGHTS.lampPointIntensity * (scale / LAYOUT.lampLeft.scale) * k * boost.current;
+      light.current.visible = live.viewBlend > VIEW.nearDetailFrom;
+    }
   });
 
   // Stand on the street, not in it.

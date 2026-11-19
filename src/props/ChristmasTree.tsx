@@ -3,7 +3,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { PRANK } from '@/src/game/constants';
+import { PRANK, VIEW } from '@/src/game/constants';
 import { useApp, live } from '@/src/game/store';
 import { groundLift } from '@/src/scene/groundSample';
 import { FOOTPRINT, type Placement } from '@/src/scene/layout';
@@ -119,6 +119,7 @@ export function ChristmasTree({ at }: { at: Placement }) {
   const swell = useRef(0);
 
   useFrame(({ clock }, rawDt) => {
+    if (light.current) light.current.visible = live.viewBlend > VIEW.nearDetailFrom;
     const dt = Math.min(rawDt, 1 / 30);
     const twinkle = 0.85 + 0.15 * Math.sin(clock.elapsedTime * 3.1);
     const k = on.current ? twinkle * live.villageLight : 0;
