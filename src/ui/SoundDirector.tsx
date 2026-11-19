@@ -7,9 +7,9 @@ import styles from './ui.module.css';
 const MUTE_KEY = 'naughty-list:muted';
 
 /**
- * Drives the synthesized sound from the game state: the music box plays in the intro, during
- * play and through the judge (the dive video brings its own sound), pranks get their effects, the
- * result gets a fanfare, and a shake in the intro shimmers. Also the mute button.
+ * Drives the sound from the game state: the ambient bed (a little lower while you're judged),
+ * pranks get their effects, the result gets its sting, and a shake in the intro shimmers. Also
+ * the mute button.
  */
 export function SoundDirector() {
   const [muted, setMuted] = useState(false);
@@ -33,9 +33,8 @@ export function SoundDirector() {
     window.addEventListener('keydown', unlock);
 
     const apply = (phase: string) => {
-      if (phase === 'start') sound.setMusic(false);
-      else if (phase === 'judge') sound.setMusic(true, 0.55);
-      else sound.setMusic(true);
+      // The room hushes a little while you're being judged.
+      sound.setAmbient(phase === 'judge' ? 0.6 : 1);
     };
 
     let prev = useApp.getState();

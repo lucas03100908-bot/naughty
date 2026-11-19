@@ -97,6 +97,29 @@ export const CAMERA = { near: 0.05, far: 40 };
  */
 export const SCENE_TILT = 0.2;
 
+/**
+ * The miniature ski world on the table around the globe (outside only). World units, from the
+ * table point under the globe's centre.
+ */
+export const DIORAMA = {
+  /** Nothing but level snow inside this radius (the globe's base is ~0.34). */
+  clearRadius: 0.4,
+  /** The toy train's loop around the base, and the half-width of its flat bed. */
+  trackRadius: 0.47,
+  trackBed: 0.032,
+  bedHeight: 0.004,
+  /** Track angles (radians, 0 = right, +π/2 = toward the viewer) where it runs through a hill. */
+  tunnels: [-0.35, Math.PI + 0.35] as number[],
+  /** Train speed around the loop, radians per second (a lap ≈ 30 s). */
+  trainSpeed: 0.21,
+  /** Chair lift: loop speed in loop-lengths per second, and how many chairs hang on it. */
+  liftSpeed: 0.012,
+  liftChairs: 14,
+  /** Skier speed range down a run, runs per second. */
+  skierSpeed: [0.05, 0.085] as [number, number],
+  pines: 40,
+};
+
 export const SNOW = {
   count: 3000,
   /** Heightfield resolution (cells per side). */
@@ -312,7 +335,7 @@ export const LOOK = {
   /** …and every frame for this long after a prank or a phase change. */
   shadowHotSec: 4,
   /** Fog [near, far] in world units: outside (the whole globe in view) and inside (street scale). */
-  fogOutside: [3.8, 8] as [number, number],
+  fogOutside: [3.6, 7] as [number, number],
   fogInside: [0.12, 0.75] as [number, number],
   /** Screen-space ambient occlusion (contact shading where walls meet the street). */
   /** Studio lights (hemisphere, fill, key) inside the globe, as a share of outside. */

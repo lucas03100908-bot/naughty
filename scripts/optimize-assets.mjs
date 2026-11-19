@@ -77,6 +77,34 @@ const ALL_MODELS = [
   { name: 'snowman', triangles: 50_000, baseSize: 1024, emissive: false, cover: [] },
   // Snowy cobbled street with curbs: the village ground.
   { name: 'ground', triangles: 60_000, baseSize: 2048, emissive: false, cover: [] },
+  // The ski diorama outside the globe (split from multi-part sheets by split-diorama.mjs). Seen
+  // from outside only, each a few dozen to ~150px tall: small budgets, small textures.
+  ...[
+    ['dio_chalet', 9_000, 1024, true],
+    ['dio_house_a', 6_000, 512, true],
+    ['dio_house_b', 6_000, 512, true],
+    ['dio_rental', 6_000, 512, true],
+    ['dio_locomotive', 6_000, 512, true],
+    ['dio_coach_green', 3_500, 512, true],
+    ['dio_coach_red', 3_500, 512, true],
+    ['dio_lift_tower', 1_500, 256, false],
+    ['dio_gondola_red', 1_500, 256, false],
+    ['dio_skier_red', 1_500, 256, false],
+    ['dio_skier_green', 1_500, 256, false],
+    ['dio_snowboarder', 1_500, 256, false],
+    ['dio_ski_family', 2_500, 256, false],
+    // Instanced dozens of times.
+    ['dio_pine', 1_200, 512, false, 0.2],
+    ['dio_pine_l', 1_200, 256, false, 0.2],
+    ['dio_pine_m', 1_000, 256, false, 0.2],
+    ['dio_pine_s', 800, 256, false, 0.2],
+    ['dio_logs', 1_200, 256, false],
+    ['dio_rock', 2_000, 512, false],
+    ['dio_snow_pile', 1_200, 256, false],
+    ['dio_signpost', 1_200, 256, false],
+    ['dio_fence', 1_000, 256, false],
+    ['dio_bridge', 2_000, 512, false],
+  ].map(([name, triangles, baseSize, emissive, error = 0.02]) => ({ name, triangles, baseSize, emissive, error, cover: [] })),
 ];
 
 const MODELS = only.length ? ALL_MODELS.filter((m) => only.includes(m.name)) : ALL_MODELS;

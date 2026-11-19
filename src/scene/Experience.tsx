@@ -9,7 +9,7 @@ import { live, useApp } from '@/src/game/store';
 import { applyOffAxis, eyeFromHeadCm, type ViewWindow } from '@/src/tracking/offAxisCamera';
 import { JudgeDirector } from './JudgeDirector';
 import { setSceneCapture } from './capture';
-import { KnitCloth } from './KnitCloth';
+import { Diorama } from './diorama/Diorama';
 import { PostFX } from './PostFX';
 import { SnowGlobe } from './SnowGlobe';
 
@@ -240,7 +240,7 @@ export default function Experience() {
       </Environment>
       <group name="tilted" rotation-x={SCENE_TILT}>
         <group position={[0, GLOBE.position[1], GLOBE.position[2]]}>
-          <KnitCloth />
+          <Diorama />
         </group>
         <SnowGlobe />
       </group>

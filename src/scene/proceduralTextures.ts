@@ -22,61 +22,6 @@ function tex(c: HTMLCanvasElement, repeat: [number, number], srgb: boolean) {
   return t;
 }
 
-/**
- * Chunky stockinette knit: columns of interlocking "V" loops. Returns a colour map and a
- * height (bump) map that share the same layout.
- */
-export function knitTextures(repeat: [number, number]) {
-  const size = 512;
-  const cols = 8;
-  const rows = 12;
-  const [cc, c] = canvas(size);
-  const [hc, h] = canvas(size);
-  const r = rand(7);
-  c.fillStyle = '#0b0b0d';
-  c.fillRect(0, 0, size, size);
-  h.fillStyle = '#000';
-  h.fillRect(0, 0, size, size);
-
-  const cw = size / cols;
-  const rh = size / rows;
-  for (let col = 0; col < cols; col++) {
-    for (let row = -1; row <= rows; row++) {
-      const x = col * cw + cw / 2;
-      const y = row * rh + rh / 2;
-      for (const side of [-1, 1]) {
-        // One leg of the V: a tilted, elongated loop.
-        const draw = (ctx: CanvasRenderingContext2D, fill: string | CanvasGradient) => {
-          ctx.save();
-          ctx.translate(x + side * cw * 0.22, y);
-          ctx.rotate(side * -0.62);
-          ctx.beginPath();
-          ctx.ellipse(0, 0, cw * 0.2, rh * 0.78, 0, 0, Math.PI * 2);
-          ctx.fillStyle = fill;
-          ctx.fill();
-          ctx.restore();
-        };
-        const shade = 92 + r() * 22;
-        const gc = c.createRadialGradient(x, y - rh * 0.2, 1, x, y, rh);
-        gc.addColorStop(0, `rgb(${shade + 30},${shade + 30},${shade + 34})`);
-        gc.addColorStop(1, `rgb(${shade - 45},${shade - 45},${shade - 42})`);
-        draw(c, gc);
-        const gh = h.createRadialGradient(x + side * cw * 0.22, y, 1, x + side * cw * 0.22, y, rh * 0.8);
-        gh.addColorStop(0, '#fff');
-        gh.addColorStop(1, '#000');
-        draw(h, gh);
-      }
-    }
-  }
-  // Fuzzy fibres.
-  for (let i = 0; i < 9000; i++) {
-    const v = 90 + r() * 60;
-    c.fillStyle = `rgba(${v},${v},${v + 4},0.12)`;
-    c.fillRect(r() * size, r() * size, 1, 2 + r() * 3);
-  }
-  return { map: tex(cc, repeat, true), bump: tex(hc, repeat, false) };
-}
-
 /** Dark walnut with turned-wood rings (stripes run around the lathe). */
 export function woodTextures() {
   const size = 512;
