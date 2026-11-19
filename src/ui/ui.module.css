@@ -46,52 +46,7 @@
   position: relative;
   left: 50%;
   transform: translateX(-50%) scaleY(1.15);
-  margin: 0.55em 0 0.1em;
-}
-/* The word Santa wrote first, above and a little left, tilted like a quick hand. */
-.titleNice {
-  position: absolute;
-  left: 4%;
-  bottom: 100%;
-  margin-bottom: 0.08em;
-  font-size: 0.44em;
-  letter-spacing: 0.16em;
-  color: #efe6d4;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
-  transform: rotate(-5deg);
-  transform-origin: left bottom;
-}
-.titleStrike {
-  position: absolute;
-  left: -6%;
-  top: 34%;
-  width: 112%;
-  height: 34%;
-  overflow: visible;
-}
-.titleStrike path {
-  fill: none;
-  stroke: #e0262e;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 140;
-  stroke-dashoffset: 140;
-  animation: strike 520ms cubic-bezier(0.6, 0, 0.3, 1) 900ms forwards;
-}
-.titleStrike path + path {
-  stroke-width: 1.6;
-  opacity: 0.85;
-  animation-delay: 1180ms;
-}
-@keyframes strike {
-  to { stroke-dashoffset: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .titleStrike path {
-    animation: none;
-    stroke-dashoffset: 0;
-  }
+  margin: 0.1em 0;
 }
 .lede {
   margin: 14px auto 24px;
